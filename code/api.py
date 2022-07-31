@@ -13,16 +13,16 @@ import re
 api_key = env.get_api_key()
 
 
-def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED'):
+def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED', verbose=False):
     # check if symbol data is stored in cache
     # if not, get it and store it
     # if yes, return it
     if os.path.exists(f'./cache/{symbol}_{function}.json'):
-        print(f'loading {function} data from cache for {symbol}...')
+        if verbose: print(f'loading {function} data from cache for {symbol}...')
         with open(f'cache/{symbol}_{function}.json') as f:
             data = json.load(f)
     else:
-        print(f'loading {function} data from api and storing to cache for {symbol}...')
+        if verbose: print(f'loading {function} data from api and storing to cache for {symbol}...')
         url = f'https://www.alphavantage.co/query?function={function}&symbol={symbol}&apikey={api_key}&outputsize=full'
         r = requests.get(url)
         data = r.json()
@@ -43,13 +43,13 @@ def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED'):
     time_series = time_series.transpose()
     if function == 'TIME_SERIES_DAILY_ADJUSTED':
         column_mapping = {'1. open': 'open', '2. high': 'high', '3. low': 'low', '4. close': 'close',
-                          '5. volume': 'volume'}
+                          '5. adjusted close': 'adjusted_close', '6. volume': 'volume', '7. dividend amount': 'dividend_amount', '8. split coefficient':'split_coefficient'}
     elif function == 'TIME_SERIES_WEEKLY_ADJUSTED':
         column_mapping = {'1. open': 'weekly_open', '2. high': 'weekly_high', '3. low': 'weekly_low',
-                          '4. close': 'weekly_close', '5. volume': 'weekly_volume'}
+                          '4. close': 'weekly_close', '5. adjusted close': 'weekly_adjusted_close', '6. volume': 'weekly_volume', '7. dividend amount': 'weekly_dividend_amount', '8. split coefficient':'weekly_split_coefficient'}
     elif function == 'TIME_SERIES_MONTHLY_ADJUSTED':
         column_mapping = {'1. open': 'monthly_open', '2. high': 'monthly_high', '3. low': 'monthly_low',
-                          '4. close': 'monthly_close', '5. volume': 'monthly_volume'}
+                          '4. close': 'monthly_close', '5. adjusted close': 'monthly_adjusted_close', '6. volume': 'monthly_volume', '7. dividend amount': 'monthly_dividend_amount', '8. split coefficient':'monthly_split_coefficient'}
     else:
         # error, function not supported
         return [False, 'function not supported']
@@ -57,17 +57,19 @@ def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED'):
     time_series = time_series.rename(columns=column_mapping)
     # change index data type to datetime
     time_series.index = pd.to_datetime(time_series.index)
+    # change time_series data to numeric
+    time_series = time_series.apply(pd.to_numeric, errors='coerce')
     return [True, metadata, time_series]
 
 
-def get_income_statement(symbol):
+def get_income_statement(symbol, verbose=False):
     function = 'INCOME_STATEMENT'
     if os.path.exists(f'./cache/{symbol}_{function}.json'):
-        print(f'loading {function} data from cache for {symbol}...')
+        if verbose: print(f'loading {function} data from cache for {symbol}...')
         with open(f'cache/{symbol}_{function}.json') as f:
             data = json.load(f)
     else:
-        print(f'loading {function} data from api and storing to cache for {symbol}...')
+        if verbose: print(f'loading {function} data from api and storing to cache for {symbol}...')
         url = f'https://www.alphavantage.co/query?function={function}&symbol={symbol}&apikey={api_key}'
         r = requests.get(url)
         data = r.json()
@@ -85,14 +87,14 @@ def get_income_statement(symbol):
     return [True, data]
 
 
-def get_balance_sheet(symbol):
+def get_balance_sheet(symbol, verbose=False):
     function = 'BALANCE_SHEET'
     if os.path.exists(f'./cache/{symbol}_{function}.json'):
-        print(f'loading {function} data from cache for {symbol}...')
+        if verbose: print(f'loading {function} data from cache for {symbol}...')
         with open(f'cache/{symbol}_{function}.json') as f:
             data = json.load(f)
     else:
-        print(f'loading {function} data from api and storing to cache for {symbol}...')
+        if verbose: print(f'loading {function} data from api and storing to cache for {symbol}...')
         url = f'https://www.alphavantage.co/query?function={function}&symbol={symbol}&apikey={api_key}'
         r = requests.get(url)
         data = r.json()
@@ -108,14 +110,14 @@ def get_balance_sheet(symbol):
     return [True, data]
 
 
-def get_earnings(symbol):
+def get_earnings(symbol, verbose=False):
     function = 'EARNINGS'
     if os.path.exists(f'./cache/{symbol}_{function}.json'):
-        print(f'loading {function} data from cache for {symbol}...')
+        if verbose: print(f'loading {function} data from cache for {symbol}...')
         with open(f'cache/{symbol}_{function}.json') as f:
             data = json.load(f)
     else:
-        print(f'loading {function} data from api and storing to cache for {symbol}...')
+        if verbose: print(f'loading {function} data from api and storing to cache for {symbol}...')
         url = f'https://www.alphavantage.co/query?function={function}&symbol={symbol}&apikey={api_key}'
         r = requests.get(url)
         data = r.json()
@@ -175,14 +177,14 @@ def get_company_overview(symbol):
 
 
 # note, date must be later than 2010-01-01
-def get_status(date=datetime.datetime.now().strftime('%Y-%m-%d'), state='active'):
+def get_status(date=datetime.datetime.now().strftime('%Y-%m-%d'), state='active', verbose=False):
     function = 'LISTING_STATUS'
     if os.path.exists(f'./cache/{date}_{function}_{state}.json'):
-        print(f'loading {function} data from cache for {date}...')
+        if verbose: print(f'loading {function} data from cache for {date}...')
         with open(f'cache/{date}_{function}_{state}.json') as f:
             data = json.load(f)
     else:
-        print(f'loading {function} data from api and storing to cache for {date}...')
+        if verbose: print(f'loading {function} data from api and storing to cache for {date}...')
         url = f'https://www.alphavantage.co/query?function={function}&date={date}&apikey={api_key}&state={state}'
         with requests.Session() as s:
             download = s.get(url)
@@ -203,7 +205,7 @@ def get_status(date=datetime.datetime.now().strftime('%Y-%m-%d'), state='active'
     return [True, status]
 
 
-def get_real_gdp(function='REAL_GDP', interval='quarterly'):
+def get_real_gdp(function='REAL_GDP', interval='quarterly', verbose=False):
     if os.path.exists(f'./cache/{interval}_{function}.json'):
         print(f'loading {function} data from cache for {interval}...')
         with open(f'cache/{interval}_{function}.json') as f:
