@@ -1,13 +1,12 @@
 import os
+import time
 
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-
-import StockLoader
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+import StockLoader
 import model
 
 
@@ -33,7 +32,7 @@ class StockPredictor():
         self.model_params = []
 
     def create_model(self,
-                     input_size=17,
+                     input_size=16,
                      hidden_size=50,
                      num_layers=4,
                      dropout=0.2,
@@ -45,7 +44,7 @@ class StockPredictor():
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def load(self, request, batch_size=60, verbose=False, train=True, timestep=30):
-        self.sl.load(request)
+        self.sl.load(request, train)
         if train:
             if verbose: print('loading training data')
             self.train_loader = self.sl.create_loader(self.sl.slicedStocks, batch_size=batch_size, timestep=timestep)
@@ -60,8 +59,13 @@ class StockPredictor():
             print('please load data first')
             return
 
+        total_correct = 0
+        total_covered = 0
+        training_start_time = time.time()
         for epoch in range(num_epochs):
             num_correct = 0
+            total_seen = 0
+            epoch_start_time = time.time()
             for i, (x, y) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
                 # x = x.to(self.device)
@@ -72,22 +76,34 @@ class StockPredictor():
                 loss = self.criterion(y_pred, y)
                 loss.backward()
                 self.optimizer.step()
-                num_correct += test_accuracy(y_pred, y)
+                corr = test_accuracy(y_pred, y)
+                num_correct += corr
+                total_correct += num_correct
+                total_covered += y.shape[0]
                 if i % 100 == 0:
                     print(
-                        f"Epoch: {epoch + 1}, Progress: {np.round(((i + 1)/len(self.train_loader))*100, 2)}, Loss: {loss.item():.4f}, Accuracy: {test_accuracy(y_pred, y) / y.shape[0]}")
-            print(f"Accuracy: {num_correct / len(self.train_loader)}")
+                        f"Epoch: {epoch + 1}, Progress: {np.round(((i + 1) / len(self.train_loader)) * 100, 0)}%, Loss: {loss.item():.4f}, Accuracy: {np.round(corr / y.shape[0], 2)}")
+            print(
+                f"Accuracy: {np.round(num_correct / len(self.train_loader), 2)}, Epoch Time: {np.round(time.time() - epoch_start_time, 1)}s")
+        print(f'Done Training, Total Time: {np.round(time.time() - training_start_time, 2)}s')
 
     def save_model(self, path):
         torch.save(self.model.state_dict(), os.getcwd() + path)
 
-    def load_model(self, path, input_size=17, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
+    def load_model(self, path, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
         self.model = model.Model(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout,
                                  device=device)
         self.model.load_state_dict(torch.load(os.getcwd() + path))
         self.model.eval()
 
-    def test_model(self, test_tickers=None, batch_size=60):
+    def test_model(self, test_tickers=None, batch_size=60, test_ticker_count=10, verbose=False):
+        '''
+
+        :param test_tickers: custom test ticker array (default to random selection)
+        :param batch_size:
+        :param test_ticker_count: number of random tickers to select (if no test_tickers are passed)
+        :return:
+        '''
         if self.model is None:
             print('Model is None')
             return
@@ -95,12 +111,13 @@ class StockPredictor():
         self.testsl = StockLoader.StockLoader()
         if test_tickers is None:
             localtickers = self.testsl.getlocaltickers()
-            test_request = np.random.choice(localtickers, 10, replace=False)
+            test_request = np.random.choice(localtickers, test_ticker_count, replace=False)
+            print(f'Testing model on: {test_request}')
         else:
             test_request = test_tickers
 
         self.testsl.load(test_request)
-        test_loader = self.testsl.create_loader(self.testsl.slicedStocks, batch_size=batch_size)
+        test_loader = self.testsl.create_loader(self.testsl.slicedStocks, batch_size=0, test=True)
 
         total_available = 0
         num_correct = 0
@@ -111,17 +128,21 @@ class StockPredictor():
             y = y[:, -1].reshape(-1, 1)
             num_correct += test_accuracy(preds, y)
             total_available += preds.shape[0]
-        print(f'Accuracy: {num_correct / total_available}')
+        print(f'Accuracy: {np.round(num_correct / total_available, 2)}')
 
         def generate_prediction(self, ticker):
             print(f'Generating Prediction for Ticker: {ticker}')
 
 
-
-
-
 if __name__ == '__main__':
     sp = StockPredictor()
-    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT','JNJ']
+    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT',
+               'JNJ', 'PFE', 'PG', 'PEP', 'PKI', 'PYPL', 'QCOM', 'RCL', 'ROKU', 'SBUX', 'T', 'TSLA', 'TWTR', 'TXN',
+               'UNH', 'VZ', 'V', 'WMT', 'XOM', 'WBA', 'WFC', 'WYNN']
     sp.create_model()
-    sp.load(request)
+    sp.load(request, timestep=60, train=True)
+    sp.test_model(request)
+    sp.train_model(10)
+    sp.save_model('/model/modelv3.pth')
+    sp.test_model(request)
+    sp.test_model(test_ticker_count=25)

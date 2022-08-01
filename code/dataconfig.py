@@ -36,7 +36,6 @@ class DataConfig:
         # # add column for each ticker
         # for t in self.tickers:
         #     df[t] = self.data[t].open
-        #
 
         df = pd.DataFrame(self.data, index=self.data.keys())
         if len(df.columns) != len(request):
@@ -56,7 +55,7 @@ class ETF:
     - monthly_metadata, time_series_monthly
     """
 
-    def __init__(self, t, verbose=False):
+    def __init__(self, t, verbose=False, alldata=False):
         temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose)
         if temp[0]:
             self.daily_metadata, self.daily = temp[1], temp[2]
@@ -64,23 +63,24 @@ class ETF:
             print(f'Time Series Daily data unavailable for {t}')
             self.daily_metadata, self.daily = None, None
 
-        temp = api.get_timeseries(t, 'TIME_SERIES_WEEKLY_ADJUSTED', verbose)
-        if temp[0]:
-            self.weekly_metadata, self.weekly = temp[1], temp[2]
-        else:
-            print(f'Time Series Weekly data unavailable for {t}')
-            self.weekly_metadata, self.weekly = None, None
+        if alldata:
+            temp = api.get_timeseries(t, 'TIME_SERIES_WEEKLY_ADJUSTED', verbose)
+            if temp[0]:
+                self.weekly_metadata, self.weekly = temp[1], temp[2]
+            else:
+                print(f'Time Series Weekly data unavailable for {t}')
+                self.weekly_metadata, self.weekly = None, None
 
-        temp = api.get_timeseries(t, 'TIME_SERIES_MONTHLY_ADJUSTED', verbose)
-        if temp[0]:
-            self.monthly_metadata, self.monthly = temp[1], temp[2]
-        else:
-            print(f'Time Series Monthly data unavailable for {t}')
-            self.monthly_metadata, self.monthly = None, None
+            temp = api.get_timeseries(t, 'TIME_SERIES_MONTHLY_ADJUSTED', verbose)
+            if temp[0]:
+                self.monthly_metadata, self.monthly = temp[1], temp[2]
+            else:
+                print(f'Time Series Monthly data unavailable for {t}')
+                self.monthly_metadata, self.monthly = None, None
 
 
 class Stock:
-    def __init__(self, t, verbose=False):
+    def __init__(self, t, verbose=False, alldata=False):
         temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose)
         if temp[0]:
             self.daily_metadata, self.daily = temp[1], temp[2]
@@ -88,46 +88,47 @@ class Stock:
             print(f'Time Series Daily data unavailable for {t}')
             self.daily_metadata, self.daily = None, None
 
-        temp = api.get_timeseries(t, 'TIME_SERIES_WEEKLY_ADJUSTED', verbose)
-        if temp[0]:
-            self.weekly_metadata, self.weekly = temp[1], temp[2]
-        else:
-            print(f'Time Series Weekly data unavailable for {t}')
-            self.weekly_metadata, self.weekly = None, None
+        if alldata:
+            temp = api.get_timeseries(t, 'TIME_SERIES_WEEKLY_ADJUSTED', verbose)
+            if temp[0]:
+                self.weekly_metadata, self.weekly = temp[1], temp[2]
+            else:
+                print(f'Time Series Weekly data unavailable for {t}')
+                self.weekly_metadata, self.weekly = None, None
 
-        temp = api.get_timeseries(t, 'TIME_SERIES_MONTHLY_ADJUSTED', verbose)
-        if temp[0]:
-            self.monthly_metadata, self.monthly = temp[1], temp[2]
-        else:
-            print(f'Time Series Monthly data unavailable for {t}')
-            self.monthly_metadata, self.monthly = None, None
+            temp = api.get_timeseries(t, 'TIME_SERIES_MONTHLY_ADJUSTED', verbose)
+            if temp[0]:
+                self.monthly_metadata, self.monthly = temp[1], temp[2]
+            else:
+                print(f'Time Series Monthly data unavailable for {t}')
+                self.monthly_metadata, self.monthly = None, None
 
-        # temp = api.get_income_statement(t)
-        # if temp[0]:
-        #     self.income_statement = temp[1]
-        # else:
-        #     print(f'{t} is not in the list of tickers')
-        #     self.income_statement = None
-        #
-        # temp = api.get_balance_sheet(t)
-        # if temp[0]:
-        #     self.balance_sheet = temp[1]
-        # else:
-        #     print(f'{t} is not in the list of tickers')
-        #     self.balance_sheet = None
-        #
-        # # temp = api.get_earnings(t)
-        # if temp[0]:
-        #     self.annualEarnings, self.quarterlyEarnings = temp[1], temp[2]
-        # else:
-        #     self.annualEarnings = None
-        #     self.quarterlyEarnings = None
+            # temp = api.get_income_statement(t)
+            # if temp[0]:
+            #     self.income_statement = temp[1]
+            # else:
+            #     print(f'{t} is not in the list of tickers')
+            #     self.income_statement = None
+            #
+            # temp = api.get_balance_sheet(t)
+            # if temp[0]:
+            #     self.balance_sheet = temp[1]
+            # else:
+            #     print(f'{t} is not in the list of tickers')
+            #     self.balance_sheet = None
+            #
+            # # temp = api.get_earnings(t)
+            # if temp[0]:
+            #     self.annualEarnings, self.quarterlyEarnings = temp[1], temp[2]
+            # else:
+            #     self.annualEarnings = None
+            #     self.quarterlyEarnings = None
 
-        # temp = api.get_company_overview(t)
-        # if temp[0]:
-        #     self.companyOverview = temp[1]
-        # else:
-        #     self.companyOverview = None
+            # temp = api.get_company_overview(t)
+            # if temp[0]:
+            #     self.companyOverview = temp[1]
+            # else:
+            #     self.companyOverview = None
 
     def buildDF(self):
         return self.daily

@@ -1,21 +1,23 @@
 import math
 import os
-from os.path import isfile, join
 from os import listdir
+from os.path import isfile, join
 
-import torch
-from torch.utils.data import Dataset, DataLoader, TensorDataset
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-import dataconfig
+import numpy as np
+import pandas as pd
 import tulipy as ti
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from torch.utils.data import DataLoader, TensorDataset
+
+import dataconfig
+
 dc = dataconfig.DataConfig()
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import model
+
+'''
+loads data for stocks using dataconfig and performs data preprocessing
+'''
 
 
 def print_info(indicator):
@@ -48,7 +50,7 @@ class StockLoader():
         plt.title(f'{symbol} Daily Price')
         plt.show()
 
-    def process(self, stock):
+    def process(self, stock, train=True):
         # PARAMETERS For Technical Indicators
         RSI_window_length = 14  # window length for RSI
         SMA_window_length = 30  # window length for SMA
@@ -133,12 +135,23 @@ class StockLoader():
         # change target to numeric
         stock['target'] = stock['target'].astype(int)
 
+        # convert stock.index to datetime
+        stock.index = pd.to_datetime(stock.index)
+
+
         # do this last !!!
+        # TODO: fix this
+        # # # if train, drop stock data after 2018-01-01
+        # if train:
+        #     stock = stock[stock.index < '2018-01-01']
+        # else:
+        #     stock = stock[stock.index > '2018-01-01']
+
 
         # drop features we don't need
         # lets keep these for now.
         # stock = stock.drop(['open', 'high', 'low', 'close', 'dividend_amount', 'split_coefficient'], axis=1)
-        stock = stock.drop(['close', 'dividend_amount', 'split_coefficient'], axis=1)
+        stock = stock.drop(['close', 'dividend_amount', 'split_coefficient', 'average_future_price'], axis=1)
         # drop na rows
         stock = stock.dropna()
 
@@ -148,7 +161,7 @@ class StockLoader():
 
         col_order = ['open', 'high', 'low', 'adjusted_close', 'volume', 'RSI', 'SMA',
                      'VWMA', 'BBAND_lower', 'BBAND_middle', 'BBAND_upper', 'MACD',
-                     'MACDSignal', 'MACDHist', '52_week_high', '52_week_low', 'average_future_price', 'target']
+                     'MACDSignal', 'MACDHist', '52_week_high', '52_week_low', 'target']
         # reorder columns in stock
         stock = stock[col_order]
 
@@ -175,7 +188,7 @@ class StockLoader():
         mms = MinMaxScaler()
         ss = StandardScaler()
         # ss columns = ['adjusted_close', 'volume', 'average_future_price']
-        standard_scaler_columns = [0, 1, 2, 3, 4, 16]
+        standard_scaler_columns = [0, 1, 2, 3, 4]
         # loop through the feature columns
         for i in range(npstock.shape[1]):
             # use standard scaler for Close, Target, and Volume
@@ -185,10 +198,11 @@ class StockLoader():
                 npstock[:, i] = mms.fit_transform(npstock[:, i].reshape(-1, 1)).reshape(-1)
 
 
+
         return npstock, stock, date_mapping, column_mappings
 
 
-    def load(self, request, test=False):
+    def load(self, request, train=True):
         """
         prepares dataframe for stocks in request. performs data preprocessing
         :param request:
@@ -199,20 +213,20 @@ class StockLoader():
         self.npstocks = {}
         for s in self.data:
             stock = s.daily
-            npstock, stock, date_mapping, column_mappings = self.process(stock)
-            self.npstocks[request[requestitr]] = npstock
+            npstock, stock, date_mapping, column_mappings = self.process(stock, train)
+            self.npstocks[request[requestitr]] = [npstock, stock, date_mapping, column_mappings]
             requestitr += 1
         self.slicedStocks = {}
-        if not test:
+        if train:
             # make stock time data all the same length
             maxlen = math.inf
             for stock in self.npstocks.keys():
-                if self.npstocks[stock].shape[0] < maxlen:
-                    maxlen = self.npstocks[stock].shape[0]
+                if self.npstocks[stock][0].shape[0] < maxlen:
+                    maxlen = self.npstocks[stock][0].shape[0]
             # cut off at maxlen
             for stock in self.npstocks.keys():
-                self.slicedStocks[stock] = self.npstocks[stock][:maxlen]
-
+                # TODO: change this part, :maxlen or :
+                self.slicedStocks[stock] = self.npstocks[stock][0][:]
 
 
     def create_loader(self, stocks: dict, batch_size=60, test=False, shuffle=False, timestep=30):
@@ -247,6 +261,10 @@ class StockLoader():
 
         return loader
 
+    def create_test_input(self, ticker):
+        processedstock = self.process(dc.getdata([ticker]).daily)
+
+
     def getlocaltickers(self):
         mypath = os.getcwd()
         mypath += '/cache'
@@ -274,25 +292,3 @@ if __name__ == '__main__':
     sl = StockLoader()
 
     sl.load(request)
-    loader = sl.create_loader(sl.slicedStocks, batch_size=BATCH_SIZE)
-
-    model = model.Model(input_size=17, hidden_size=50, num_layers=4, dropout=0.25)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    NUM_EPOCHS = 10
-
-    for epoch in range(NUM_EPOCHS):
-        for i, (x, y) in enumerate(loader):
-            optimizer.zero_grad()
-            y_pred = model(x)
-            # y = y.reshape(y.shape[0], y.shape[1], -1)
-            y = y[:, -1].reshape(-1, 1)
-            loss = criterion(y_pred, y)
-            # backward pass
-            loss.backward()
-            # update the weights
-            optimizer.step()
-            # print the loss
-            if i % 100 == 0:
-                print(f"Epoch: {epoch + 1}, Step: {i + 1}, Loss: {loss.item():.4f}")

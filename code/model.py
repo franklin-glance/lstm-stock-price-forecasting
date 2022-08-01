@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# TODO: make the model work on mps
 
 class Model(nn.Module):
-    def __init__(self, input_size=17, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
+    def __init__(self, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
         super(Model, self).__init__()
         self.input_size = input_size # the number of expected features in the input x
         self.hidden_size = hidden_size # the number of features in the hidden state h
