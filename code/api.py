@@ -10,6 +10,10 @@ import datetime
 import csv, json
 import re
 
+'''
+This file interacts with the alpahvantage api to get stock data
+'''
+
 api_key = env.get_api_key()
 
 

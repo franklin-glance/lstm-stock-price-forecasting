@@ -1,12 +1,16 @@
 import pandas as pd
 import api
 
+'''
+This file handles the loading and storage of stock data from api/cache
+'''
+
 
 class DataConfig:
     def __init__(self):
         # List of Tickers
         self.tickers_available = api.get_status()[1]
-        self.consumer_sentiment = api.get_consumer_sentiment()
+        # self.consumer_sentiment = api.get_consumer_sentiment()
         self.tickers = []
         self.data = {}
 
@@ -36,6 +40,7 @@ class DataConfig:
 
         df = pd.DataFrame(self.data, index=self.data.keys())
         if len(df.columns) != len(request):
+            print(f'col len: {len(df.columns)}, req len: {len(request)}')
             print('ERROR: Some tickers were not found')
         else:
             if verbose: print('All tickers were found successfully')
@@ -126,3 +131,8 @@ class Stock:
 
     def buildDF(self):
         return self.daily
+
+if __name__ == '__main__':
+    dc = DataConfig()
+    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT','JNJ']
+    data = dc.getdata(request)
