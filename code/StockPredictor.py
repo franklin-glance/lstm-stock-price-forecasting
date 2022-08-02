@@ -89,12 +89,14 @@ class StockPredictor():
 
     def save_model(self, path):
         torch.save(self.model.state_dict(), os.getcwd() + path)
+        print(f'Model saved to {path}')
 
     def load_model(self, path, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
         self.model = model.Model(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout,
                                  device=device)
         self.model.load_state_dict(torch.load(os.getcwd() + path))
         self.model.eval()
+        print(f'Model loaded from {path}')
 
     def test_model(self, test_tickers=None, batch_size=60, test_ticker_count=10, verbose=False):
         '''
@@ -133,6 +135,10 @@ class StockPredictor():
         def generate_prediction(self, ticker):
             print(f'Generating Prediction for Ticker: {ticker}')
 
+        def plot_preds(self, ticker):
+            print(f'Plotting Prediction for Ticker: {ticker}')
+
+
 
 if __name__ == '__main__':
     sp = StockPredictor()
@@ -140,9 +146,10 @@ if __name__ == '__main__':
                'JNJ', 'PFE', 'PG', 'PEP', 'PKI', 'PYPL', 'QCOM', 'RCL', 'ROKU', 'SBUX', 'T', 'TSLA', 'TWTR', 'TXN',
                'UNH', 'VZ', 'V', 'WMT', 'XOM', 'WBA', 'WFC', 'WYNN']
     sp.create_model()
-    sp.load(request, timestep=60, train=True)
+    sp.load(request, timestep=360, train=True)
     sp.test_model(request)
     sp.train_model(10)
-    sp.save_model('/model/modelv3.pth')
+    sp.save_model('/models/modelv4.pth')
     sp.test_model(request)
     sp.test_model(test_ticker_count=25)
+
