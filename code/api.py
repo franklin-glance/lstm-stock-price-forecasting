@@ -10,22 +10,26 @@ import datetime
 import csv, json
 import re
 
+
 '''
 This file interacts with the alpahvantage api to get stock data
 '''
 
+E = env.env()
+
 api_key = env.get_api_key()
 
-
-def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED', verbose=False):
+def get_timeseries(symbol, function='TIME_SERIES_DAILY_ADJUSTED', verbose=False, new=False):
     # check if symbol data is stored in cache
     # if not, get it and store it
     # if yes, return it
-    if os.path.exists(f'./cache/{symbol}_{function}.json'):
+    if os.path.exists(f'./cache/{symbol}_{function}.json') and not new:
         if verbose: print(f'loading {function} data from cache for {symbol}...')
         with open(f'cache/{symbol}_{function}.json') as f:
             data = json.load(f)
     else:
+        E.make_api_request()
+
         if verbose: print(f'loading {function} data from api and storing to cache for {symbol}...')
         url = f'https://www.alphavantage.co/query?function={function}&symbol={symbol}&apikey={api_key}&outputsize=full'
         r = requests.get(url)
@@ -265,3 +269,38 @@ def get_consumer_sentiment():
     df = df.drop(columns=['value'])
 
     return [True, df]
+
+
+if __name__ == '__main__':
+    '''
+    This is a test script to test the functions in this file.
+    '''
+    success=True
+    errors = []
+    stock = {'symbol': 'AAPL'}
+
+    # test get_timeseries
+    response = get_timeseries(stock['symbol'], 'TIME_SERIES_DAILY_ADJUSTED')
+    if response[0]:
+        stock['daily'] = response[2]
+    else:
+        success=False
+        errors.append('no daily data for ' + stock['symbol'])
+    response = get_timeseries(stock['symbol'], 'TIME_SERIES_WEEKLY_ADJUSTED')
+    if response[0]:
+        stock['weekly'] = response[2]
+    else:
+        success=False
+        errors.append('no weekly data for ' + stock['symbol'])
+    response = get_timeseries(stock['symbol'], 'TIME_SERIES_MONTHLY_ADJUSTED')
+    if response[0]:
+        stock['monthly'] = response[2]
+    else:
+        success=False
+        errors.append('no monthly data for ' + stock['symbol'])
+
+    if success:
+        print('api works!')
+    else:
+        print('api failed!')
+        print(errors)

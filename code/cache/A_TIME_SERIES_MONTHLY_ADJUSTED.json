@@ -2,17 +2,26 @@
     "Meta Data": {
         "1. Information": "Monthly Adjusted Prices and Volumes",
         "2. Symbol": "A",
-        "3. Last Refreshed": "2022-07-27",
+        "3. Last Refreshed": "2022-08-04",
         "4. Time Zone": "US/Eastern"
     },
     "Monthly Adjusted Time Series": {
-        "2022-07-27": {
+        "2022-08-04": {
+            "1. open": "133.5100",
+            "2. high": "135.2600",
+            "3. low": "131.0900",
+            "4. close": "133.7700",
+            "5. adjusted close": "133.7700",
+            "6. volume": "5489284",
+            "7. dividend amount": "0.0000"
+        },
+        "2022-07-29": {
             "1. open": "118.7900",
-            "2. high": "128.5399",
+            "2. high": "134.5000",
             "3. low": "113.0200",
-            "4. close": "127.7100",
-            "5. adjusted close": "127.7100",
-            "6. volume": "23185224",
+            "4. close": "134.1000",
+            "5. adjusted close": "134.1000",
+            "6. volume": "27261533",
             "7. dividend amount": "0.2100"
         },
         "2022-06-30": {

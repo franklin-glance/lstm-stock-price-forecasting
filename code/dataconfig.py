@@ -1,9 +1,12 @@
-import pandas as pd
 import api
 
 '''
 This file handles the loading and storage of stock data from api/cache
 '''
+
+import env
+
+E = env.env()
 
 
 class DataConfig:
@@ -14,51 +17,52 @@ class DataConfig:
         self.tickers = []
         self.data = {}
 
-    def getdata(self, request, verbose=False):
+    def getdata(self, request, verbose=False, new=False):
         datalist = []
         if verbose: print('Preparing stock data for request')
-        for t in request:
-            if verbose: print(f'Retrieving data for {t}')
-            if t in self.tickers_available.index:
-                self.tickers.append(t)
-                if self.tickers_available.loc[t, 'assetType'] == 'Stock':
-                    self.data[t] = Stock(t, verbose)
-                    datalist.append(self.data[t])
+        E.reset_api()
+        count = 0
+        if new:
+            if request in self.tickers_available.index and not request[-1].isnumeric():
+                if self.tickers_available.loc[request, 'assetType'] == 'Stock':
+                    return Stock(request, verbose=verbose, new=new)
                 else:
-                    self.data[t] = ETF(t, verbose)
-                    datalist.append(self.data[t])
-            else:
-                print(f'ERROR: {t} is not in the list of tickers')
-
-        # create daily prices dataframe with all tickers and dates, and fill with NaN.
-        # df = pd.DataFrame(index=pd.date_range('1/1/2000', '1/1/2050'), columns=self.tickers)
-        # df.fillna(value=pd.np.nan, inplace=True)
-        # # add column for each ticker
-        # for t in self.tickers:
-        #     df[t] = self.data[t].open
-
-        df = pd.DataFrame(self.data, index=self.data.keys())
-        if len(df.columns) != len(request):
-            print(f'col len: {len(df.columns)}, req len: {len(request)}')
-            print('ERROR: Some tickers were not found')
+                    return ETF(request, verbose=verbose, new=new)
         else:
-            if verbose: print('All tickers were found successfully')
+            for t in request:
+                count += 1
+                if verbose:
+                    print(f'Retrieving data for {t}, request {count} of {len(request)}')
+                if t in self.tickers_available.index and not t[-1].isnumeric():
+                    self.tickers.append(t)
+                    if self.tickers_available.loc[t, 'assetType'] == 'Stock':
+                        self.data[t] = Stock(t, verbose, new)
+                        datalist.append(self.data[t])
+                    else:
+                        self.data[t] = ETF(t, verbose, new)
+                        datalist.append(self.data[t])
+                else:
+                    print(f'ERROR: {t} is not in the list of tickers')
 
-        return datalist
+            if len(request) != len(datalist):
+                print(f'col len: {len(datalist)}, req len: {len(request)}')
+                print('ERROR: Some tickers were not found')
+            else:
+                if verbose: print('All tickers were found successfully')
+            return datalist
+
 
 class ETF:
-    """
-    ETF Class
-    Attributes:
-    - daily_metadata, time_series_daily
-    - weekly_metadata, time_series_weekly
-    - monthly_metadata, time_series_monthly
-    """
-
-    def __init__(self, t, verbose=False, alldata=False):
-        temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose)
+    def __init__(self, t, verbose=False, alldata=False, new=False):
+        temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose, new)
         if temp[0]:
+
             self.daily_metadata, self.daily = temp[1], temp[2]
+            self.symbol = self.daily_metadata['2. Symbol']
+            self.info = self.daily_metadata['1. Information']
+            self.last_refreshed = self.daily_metadata['3. Last Refreshed']
+            self.outputsize = self.daily_metadata['4. Output Size']
+            self.timezone = self.daily_metadata['5. Time Zone']
         else:
             print(f'Time Series Daily data unavailable for {t}')
             self.daily_metadata, self.daily = None, None
@@ -80,10 +84,15 @@ class ETF:
 
 
 class Stock:
-    def __init__(self, t, verbose=False, alldata=False):
-        temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose)
+    def __init__(self, t, verbose=False, alldata=False, new=False):
+        temp = api.get_timeseries(t, 'TIME_SERIES_DAILY_ADJUSTED', verbose, new)
         if temp[0]:
             self.daily_metadata, self.daily = temp[1], temp[2]
+            self.symbol = self.daily_metadata['2. Symbol']
+            self.info = self.daily_metadata['1. Information']
+            self.last_refreshed = self.daily_metadata['3. Last Refreshed']
+            self.outputsize = self.daily_metadata['4. Output Size']
+            self.timezone = self.daily_metadata['5. Time Zone']
         else:
             print(f'Time Series Daily data unavailable for {t}')
             self.daily_metadata, self.daily = None, None
@@ -103,37 +112,17 @@ class Stock:
                 print(f'Time Series Monthly data unavailable for {t}')
                 self.monthly_metadata, self.monthly = None, None
 
-            # temp = api.get_income_statement(t)
-            # if temp[0]:
-            #     self.income_statement = temp[1]
-            # else:
-            #     print(f'{t} is not in the list of tickers')
-            #     self.income_statement = None
-            #
-            # temp = api.get_balance_sheet(t)
-            # if temp[0]:
-            #     self.balance_sheet = temp[1]
-            # else:
-            #     print(f'{t} is not in the list of tickers')
-            #     self.balance_sheet = None
-            #
-            # # temp = api.get_earnings(t)
-            # if temp[0]:
-            #     self.annualEarnings, self.quarterlyEarnings = temp[1], temp[2]
-            # else:
-            #     self.annualEarnings = None
-            #     self.quarterlyEarnings = None
-
-            # temp = api.get_company_overview(t)
-            # if temp[0]:
-            #     self.companyOverview = temp[1]
-            # else:
-            #     self.companyOverview = None
-
     def buildDF(self):
         return self.daily
 
+
 if __name__ == '__main__':
+    '''
+    This will test the functions of the DataConfig class 
+    '''
+
     dc = DataConfig()
-    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT','JNJ']
-    data = dc.getdata(request)
+    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT',
+               'JNJ']
+    # data = dc.getdata(request)
+    data2 = dc.getdata('AAPL', new=True)

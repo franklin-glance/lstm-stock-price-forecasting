@@ -2,17 +2,26 @@
     "Meta Data": {
         "1. Information": "Weekly Adjusted Prices and Volumes",
         "2. Symbol": "TSLA",
-        "3. Last Refreshed": "2022-07-27",
+        "3. Last Refreshed": "2022-08-04",
         "4. Time Zone": "US/Eastern"
     },
     "Weekly Adjusted Time Series": {
-        "2022-07-27": {
+        "2022-08-04": {
+            "1. open": "903.8250",
+            "2. high": "940.8200",
+            "3. low": "878.0000",
+            "4. close": "925.9000",
+            "5. adjusted close": "925.9000",
+            "6. volume": "121655926",
+            "7. dividend amount": "0.0000"
+        },
+        "2022-07-29": {
             "1. open": "816.6500",
-            "2. high": "827.7768",
+            "2. high": "894.9600",
             "3. low": "768.7900",
-            "4. close": "824.4600",
-            "5. adjusted close": "824.4600",
-            "6. volume": "73001417",
+            "4. close": "891.4500",
+            "5. adjusted close": "891.4500",
+            "6. volume": "133013375",
             "7. dividend amount": "0.0000"
         },
         "2022-07-22": {
