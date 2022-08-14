@@ -24,3 +24,5 @@ Notes:
 - larger absolute percentages for target change result in less accurate prediction, due to overfitting of train data. This is likely due to an overabundance of '0' target values. Overfitting should improve when using larger train dataset.
 
 - Differing target change values will likely benefit from different model hyperparameters
+
+readme change
