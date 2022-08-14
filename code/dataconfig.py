@@ -33,6 +33,7 @@ class DataConfig:
                 count += 1
                 if verbose:
                     print(f'Retrieving data for {t}, request {count} of {len(request)}')
+                # TODO: fix this so tickers can have numbers
                 if t in self.tickers_available.index and not t[-1].isnumeric():
                     self.tickers.append(t)
                     if self.tickers_available.loc[t, 'assetType'] == 'Stock':

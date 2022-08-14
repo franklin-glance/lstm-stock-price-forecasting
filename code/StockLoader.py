@@ -71,6 +71,8 @@ class StockLoader():
                 MACD_short_period=12,
                 MACD_long_period=26,
                 MACD_signal_period=9,
+                target_price_change=None,
+                lookahead=30,
                 new=False
                 ):
         """
@@ -87,6 +89,7 @@ class StockLoader():
         :param MACD_short_period: short period of MACD
         :param MACD_long_period: long period of MACD
         :param MACD_signal_period: signal period of MACD
+        :param target_price_change: type of target to use for training, if None, use simple +/- binary classification
         :return: npstock, stock, date_mapping, column_mappings
         """
         columns_available = stock.columns
@@ -172,12 +175,24 @@ class StockLoader():
         weights = weights / weights.sum()
 
         # add features indicating past values.
+        # TODO: implement lookahead so average future price can be based on different time periods
         stock = stock.sort_index(ascending=False)
         stock['average_future_price'] = stock['adjusted_close'].rolling(30, min_periods=30, closed='left').apply(
             lambda x: np.sum(weights * x))
-        # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
-        stock['target'] = stock['average_future_price'] > stock['adjusted_close']
-        # change target to numeric
+
+        if target_price_change is None:
+            print(f'Training data is simple +/- binary classification for {lookahead} days')
+            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+            # change target to numeric
+        elif target_price_change > 0:
+            print(f'Target is {target_price_change}% rise for {lookahead} days')
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close'] * (1 + target_price_change / 100)
+        else:
+            print(f'Target is {target_price_change}% fall for {lookahead} days')
+            stock['target'] = stock['average_future_price'] < stock['adjusted_close'] * (1 - target_price_change / 100)
+
+
         stock['target'] = stock['target'].astype(int)
 
         # convert stock.index to datetime
@@ -261,7 +276,8 @@ class StockLoader():
 
 
 
-    def load(self, request, train=True, verbose=False, split_date='2015-01-01', batch_size=60, timestep=30):
+    def load(self, request, train=True, verbose=False, split_date='2015-01-01', batch_size=60, timestep=30,
+             target_price_change=None, lookahead=30):
         """
         prepares dataframe for stocks in request. performs data preprocessing
         :param request: list of stock symbols to load
@@ -283,7 +299,7 @@ class StockLoader():
                 stock = stock.drop(stock.loc[stock.index < split_date].index)
             if len(stock) > 1000 and np.sum(stock['volume']) > 100*len(stock):
                 print(f'Progress: {np.round(i/len(self.data)*100, 1)}% Processing {s.symbol}')
-                self.process(stock, s.symbol, train=train)
+                self.process(stock, s.symbol, train=train, target_price_change=target_price_change, lookahead=lookahead)
                 if verbose: print('loaded ' + request[requestitr])
             else:
                 if verbose: print(f'skipping {request[requestitr]} because historical data is too short')

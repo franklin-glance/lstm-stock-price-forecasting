@@ -2,11 +2,71 @@
     "Meta Data": {
         "1. Information": "Daily Time Series with Splits and Dividend Events",
         "2. Symbol": "PLTR",
-        "3. Last Refreshed": "2022-08-04",
+        "3. Last Refreshed": "2022-08-12",
         "4. Output Size": "Full size",
         "5. Time Zone": "US/Eastern"
     },
     "Time Series (Daily)": {
+        "2022-08-12": {
+            "1. open": "9.55",
+            "2. high": "9.97",
+            "3. low": "9.42",
+            "4. close": "9.91",
+            "5. adjusted close": "9.91",
+            "6. volume": "30638186",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-11": {
+            "1. open": "9.76",
+            "2. high": "10.05",
+            "3. low": "9.4",
+            "4. close": "9.42",
+            "5. adjusted close": "9.42",
+            "6. volume": "44790863",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-10": {
+            "1. open": "9.51",
+            "2. high": "9.66",
+            "3. low": "9.32",
+            "4. close": "9.59",
+            "5. adjusted close": "9.59",
+            "6. volume": "46054905",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-09": {
+            "1. open": "9.54",
+            "2. high": "9.57",
+            "3. low": "9.01",
+            "4. close": "9.25",
+            "5. adjusted close": "9.25",
+            "6. volume": "58788927",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-08": {
+            "1. open": "9.77",
+            "2. high": "10.4",
+            "3. low": "9.71",
+            "4. close": "9.82",
+            "5. adjusted close": "9.82",
+            "6. volume": "125272644",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-05": {
+            "1. open": "11.01",
+            "2. high": "11.62",
+            "3. low": "10.85",
+            "4. close": "11.45",
+            "5. adjusted close": "11.45",
+            "6. volume": "50264847",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
         "2022-08-04": {
             "1. open": "11.19",
             "2. high": "11.41",

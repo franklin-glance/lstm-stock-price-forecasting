@@ -2,11 +2,81 @@
     "Meta Data": {
         "1. Information": "Daily Time Series with Splits and Dividend Events",
         "2. Symbol": "META",
-        "3. Last Refreshed": "2022-07-27",
+        "3. Last Refreshed": "2022-08-05",
         "4. Output Size": "Full size",
         "5. Time Zone": "US/Eastern"
     },
     "Time Series (Daily)": {
+        "2022-08-05": {
+            "1. open": "166.99",
+            "2. high": "171.612",
+            "3. low": "165.8",
+            "4. close": "167.11",
+            "5. adjusted close": "167.11",
+            "6. volume": "25832701",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-04": {
+            "1. open": "168.295",
+            "2. high": "172.15",
+            "3. low": "166.8",
+            "4. close": "170.57",
+            "5. adjusted close": "170.57",
+            "6. volume": "23938212",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-03": {
+            "1. open": "162.69",
+            "2. high": "169.54",
+            "3. low": "161.57",
+            "4. close": "168.8",
+            "5. adjusted close": "168.8",
+            "6. volume": "31717527",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-02": {
+            "1. open": "158.31",
+            "2. high": "162.24",
+            "3. low": "158.01",
+            "4. close": "160.19",
+            "5. adjusted close": "160.19",
+            "6. volume": "27374516",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-01": {
+            "1. open": "157.25",
+            "2. high": "165.19",
+            "3. low": "155.2301",
+            "4. close": "159.93",
+            "5. adjusted close": "159.93",
+            "6. volume": "40596702",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-07-29": {
+            "1. open": "157.69",
+            "2. high": "160.14",
+            "3. low": "155.17",
+            "4. close": "159.1",
+            "5. adjusted close": "159.1",
+            "6. volume": "42065395",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-07-28": {
+            "1. open": "161.06",
+            "2. high": "161.51",
+            "3. low": "154.85",
+            "4. close": "160.72",
+            "5. adjusted close": "160.72",
+            "6. volume": "73214326",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
         "2022-07-27": {
             "1. open": "162.59",
             "2. high": "170.87",

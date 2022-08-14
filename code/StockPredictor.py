@@ -36,6 +36,7 @@ class StockPredictor():
         self.criterion = nn.MSELoss()
         self.optimizer = None
         self.model_params = []
+        self.tb = SummaryWriter()
 
     def create_model(self,
                      input_size=16,
@@ -60,7 +61,8 @@ class StockPredictor():
         self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         return self.model, self.optimizer
 
-    def load(self, request, batch_size=60, verbose=False, train=True, timestep=30, split_date='2015-01-01'):
+    def load(self, request, batch_size=60, verbose=False, train=True, timestep=30, split_date='2015-01-01',
+             target_price_change=None, lookahead=30):
         '''
         Loads the data for the model
         :param request: list of tickers to load into the test_loader (or train_loader)
@@ -73,18 +75,22 @@ class StockPredictor():
         if train:
             if verbose: print('loading training data')
             self.train_loader = self.sl.load(request, batch_size=batch_size, verbose=verbose, train=train, timestep=timestep,
-                         split_date=split_date)
+                         split_date=split_date, target_price_change=target_price_change, lookahead=lookahead)
             if verbose: print('request loaded')
             return self.train_loader
         else:
             if verbose: print('loading test data')
             self.test_loader = self.sl.load(request, batch_size=batch_size, verbose=verbose, train=train,
                                              timestep=timestep,
-                                             split_date=split_date)
+                                             split_date=split_date, 
+                                             target_price_change=target_price_change, lookahead=lookahead)
             if verbose: print('request loaded')
             return self.test_loader
 
     def train_model(self, num_epochs=1, verbose=False):
+
+
+
         self.model.to(self.device)
         accuracy_log = {}
         if self.train_loader is None:
@@ -97,6 +103,8 @@ class StockPredictor():
         for epoch in range(num_epochs):
             last_correct = 0
             num_correct = 0
+            total_loss=0
+            num_batches=0
             epoch_start_time = time.time()
             for i, (x, y) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
@@ -111,13 +119,27 @@ class StockPredictor():
                 corr = test_accuracy(y_pred, y)
                 # last_correct += 1 if np.abs(y_pred[-1].item() - y[-1].item()) < 0.5 else 0
                 num_correct += corr
+                num_batches +=1
+                total_loss += loss.item()
                 if verbose: print(f"Epoch: {epoch + 1}, Progress: {np.round(((i + 1) / len(self.train_loader)) * 100, 0)}%, Loss: {loss.item():.4f}, Accuracy: {np.round(corr / y.shape[0], 2)}")
             print(
                 f"Epoch: {epoch+1}, Accuracy: {np.round(num_correct / (len(self.train_loader) * self.train_loader.batch_size) , 2)}, Epoch Time: {np.round(time.time() - epoch_start_time, 1)}s")
+            self.tb.add_scalar('Loss', total_loss, epoch)
+            self.tb.add_scalar('Average Loss', total_loss / num_batches, epoch)
+            self.tb.add_scalar('Number Correct', num_correct, epoch)
+            self.tb.add_scalar('Accuracy', num_correct / (len(self.train_loader) *self.train_loader.batch_size), epoch)
+            self.tb.add_text('Number of Samples in Train set:', str(len(self.train_loader) * self.train_loader.batch_size))
+
+            # tb.add_histogram('conv1.bias', network.conv1.bias, epoch)
+            # tb.add_histogram('conv1.weight', network.conv1.weight, epoch)
+            # tb.add_histogram('conv1.weight.grad', network.conv1.weight.grad, epoch)
+
+
         print(f'Done Training, Total Time: {np.round(time.time() - training_start_time, 2)}s')
 
     def save_model(self, path):
         torch.save(self.model.state_dict(), os.getcwd() + path)
+        # torch.save(self.model, os.getcwd() + path)
         print(f'Model saved to {path}')
 
     def load_model(self, path, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
@@ -128,7 +150,7 @@ class StockPredictor():
         print(f'Model loaded from {path}')
 
     def test_model(self, test_tickers=None, batch_size=60, test_ticker_count=10, verbose=False, with_plot=False,
-                   split_date='2015-01-01', timestep=30):
+                   split_date='2015-01-01', timestep=30, lookahead=30, target_price_change=None):
         '''
         :param test_tickers: custom test ticker array (default to random selection)
         :param batch_size:
@@ -150,7 +172,8 @@ class StockPredictor():
             test_request = test_tickers
 
         test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
-                                       timestep=timestep, split_date=split_date)
+                                       timestep=timestep, split_date=split_date,
+                                       target_price_change=target_price_change, lookahead=lookahead)
 
         num_correct = 0
         total_seen = 0
@@ -163,7 +186,7 @@ class StockPredictor():
             total_seen += y.shape[0]
         self.model.accuracy = num_correct / total_seen
         print(f'Accuracy: {np.round(num_correct / total_seen, 2)}')
-
+        return num_correct/total_seen
 
 
 
@@ -180,30 +203,24 @@ class StockPredictor():
         if pred.item() > 0.5:
             # TODO: adjust stockloader.process so that the future prediction timeframe can be changed
             print(f'Prediction: {ticker} will rise in the next 6 weeks')
-            plt.suptitle(f'{ticker} will rise in the next 6 weeks, Certainty: {self.model.accuracy - (1-pred.item()):.2f}')
-            plt.plot(time_data, price_data['adjusted_close'], label=ticker)
+            # plt.suptitle(f'{ticker} will rise in the next 6 weeks, Certainty: {self.model.accuracy - (1-pred.item()):.2f}')
+            # plt.plot(time_data, price_data['adjusted_close'], label=ticker)
         else:
             print(f'Prediction: {ticker} will fall in the next 6 weeks')
-            plt.suptitle(f'{ticker} will fall in the next 6 weeks, Certainty: {self.model.accuracy - pred.item():.2f}')
-            plt.plot(time_data, price_data['adjusted_close'], label=ticker)
+            # plt.suptitle(f'{ticker} will fall in the next 6 weeks, Certainty: {self.model.accuracy - pred.item():.2f}')
+            # plt.plot(time_data, price_data['adjusted_close'], label=ticker)
         # label plot
-        plt.title('Prediction: ' + str(pred.item()))
-        plt.legend()
-        plt.show()
-
-
-
-
-    def plot_preds(self, ticker):
-        print(f'Plotting Prediction for Ticker: {ticker}')
-
+        # plt.title('Prediction: ' + str(pred.item()))
+        # plt.legend()
+        # plt.show()
+        return pred.item()
 
 
 def run_train_test():
-
-
+    timestep = 200 # length of sequence for LSTM
     device='cpu'
     sp = StockPredictor(device=device)
+    sp.create_model(device=device, num_layers=4, hidden_size=120, dropout=0.2)
     request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT',
                'JNJ', 'PFE', 'PG', 'PEP', 'PKI', 'PYPL', 'QCOM', 'RCL', 'ROKU', 'SBUX', 'T', 'TSLA', 'TWTR', 'TXN',
                'UNH', 'VZ', 'V', 'WMT', 'XOM', 'WBA', 'WFC', 'WYNN']
@@ -213,6 +230,7 @@ def run_train_test():
     # random_stocks = np.random.choice(allstocks, 100, replace=False)
     sp.load(allstocks, timestep=timestep,verbose=True)
     sp.train_model(5, verbose=True)
+    sp.save_model('/models/5epoch_4layers_120hidden_02dropout.pth')
     sp.test_model(allstocks, timestep=timestep, verbose=True)
 
     # take user input, while input is not empty, generate prediction for given ticker
@@ -223,23 +241,54 @@ def run_train_test():
         sp.generate_prediction(ticker, verbose=True, timestep=timestep)
         print('\n')
 
+letters = {'a':'z', }
 
 
 if __name__ == '__main__':
+    '''
+    Parameters:
+    num_layers: 1,2,3,4,5
+    hidden_size: 60, 120, 180, 240, 300, 360
+    dropout: 0.1, 0.2, 0.3, 0.5, 0.7, 0.9
+    timestep: 100, 200, 300, 400, 500
+    '''
+
+
+    request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT',
+               'JNJ', 'PFE', 'PG', 'PEP', 'PKI', 'PYPL', 'QCOM', 'RCL', 'ROKU', 'SBUX', 'T', 'TSLA', 'TWTR', 'TXN',
+               'UNH', 'VZ', 'V', 'WMT', 'XOM', 'WBA', 'WFC', 'WYNN']
+    # request = ['AAPL', 'TSLA', 'IBM']
+
     # Create StockPredictior Object
     device='cpu'
     sp = StockPredictor(device=device)
+    
+    '''
+    Target Type and Lookahead
+    
+    sp.load has two important params. target_price_change and lookahead.
+    target_price_change: integer representing the target price percentage change over 
+    lookahead days
+    lookahead: integer representing the number of days in the future to predict target_price_change price
+    change
+    
+    '''
+
     timestep = 200 # length of sequence for LSTM
-
-    sp.create_model(device=device, num_layers=4, hidden_size=120, dropout=0.2)
-    # sp.load_model('/models/codemodel_200timestep_4layers_120hidden_02dropout_5epoch.pth')
-    allstocks = sp.sl.getlocaltickers()
+    target_price_change = -5 # target price percentage change over lookahead days
+    sp.create_model()
+    # sp.create_model(device=device, num_layers=4, hidden_size=1000, dropout=0.2)
+    # sp.load_model(device=device, num_layers=4, hidden_size=1000, dropout=0.2, path='/models/codemodel_200timestep_4layers_120hidden_02dropout_5epoch.pth')
+    # # sp.load_model('/models/codemodel_200timestep_4layers_120hidden_02dropout_5epoch.pth')
+    # allstocks = sp.sl.getlocaltickers()
     # random_stocks = np.random.choice(allstocks, 100, replace=False)
-    sp.load(allstocks, timestep=timestep,verbose=True)
-    # sp.train_model(5, verbose=True)
-    # sp.test_model(allstocks, timestep=timestep, verbose=True)
+    sp.load(request, timestep=timestep,verbose=True, target_price_change=target_price_change)
+    sp.train_model(10, verbose=True)
+    # sp.save_model('/models/')
+    sp.test_model(request, timestep=timestep, verbose=True, target_price_change=target_price_change)
 
-    # take user input, while input is not empty, generate prediction for given ticker
+
+    # # # take user input, while input is not empty, generate prediction for given ticker
     while True:
         ticker = input('Enter ticker: ')
         if ticker == '':

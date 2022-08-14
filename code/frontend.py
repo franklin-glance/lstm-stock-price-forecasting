@@ -1,11 +1,18 @@
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+import StockPredictor
+import sys
 
-import StockLoader
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import model
+'''
+Goal:
+- Take user input, and predict stock price change using LSTM Models saved on disk.  
+'''
 
 
+
+# load ensemble of LSTM models from disk
+
+
+if __name__ == '__main__':
+    while True:
+        ticker = input('Enter ticker: ')
+        if ticker == '':
+            break

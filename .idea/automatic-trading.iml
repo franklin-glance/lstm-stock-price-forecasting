@@ -5,6 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/code/cache" />
       <excludeFolder url="file://$MODULE_DIR$/code/cache copy" />
       <excludeFolder url="file://$MODULE_DIR$/code/data" />
+      <excludeFolder url="file://$MODULE_DIR$/code/models" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (pytorch-nightly)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
