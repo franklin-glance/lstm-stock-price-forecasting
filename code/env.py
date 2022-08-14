@@ -1,6 +1,10 @@
 API_KEY = 'SBIABVRDNL5921LU'
 import time
 
+'''
+This file holds the API key for the Alpha Vantage API.
+Controls api calls to ensure API request limit is not reached. 
+'''
 
 def get_api_key():
     return API_KEY
