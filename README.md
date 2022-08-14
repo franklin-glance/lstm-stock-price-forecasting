@@ -12,7 +12,10 @@ To curate useful and accurate predictions, an ensemble type model was used. The 
 
 The overall prediction is a weighted average of the 5 predictions from the LSTM Models. The weighting is based off of train/test performance of each model on historical data. 
 
-
+---
+**Model Overview**
+![](code/assets/Flowchart-2.jpg)
+---
 Notes:
 - larger absolute percentages for target change result in less accurate prediction, due to overfitting of train data. This is likely due to an overabundance of '0' target values. Overfitting should improve when using larger train dataset.
 - Differing target change values will likely benefit from different model hyperparameters

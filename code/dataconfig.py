@@ -1,10 +1,13 @@
-import api
+import os
 
+import api
+import pickle
 '''
 This file handles the loading and storage of stock data from api/cache
 '''
 
 import env
+import os
 
 E = env.env()
 
@@ -17,7 +20,7 @@ class DataConfig:
         self.tickers = []
         self.data = {}
 
-    def getdata(self, request, verbose=False, new=False):
+    def getdata(self, request, verbose=False, new=False, allstocks=False):
         datalist = []
         if verbose: print('Preparing stock data for request')
         E.reset_api()
@@ -29,6 +32,15 @@ class DataConfig:
                 else:
                     return ETF(request, verbose=verbose, new=new)
         else:
+            if allstocks:
+                print('checking if allstocks is stored locally')
+                # check if file exists
+                if os.path.isfile(os.getcwd() + '/cache/allstocks.pkl'):
+                    with open(os.getcwd() + '/cache/allstocks.pkl', 'rb') as f:
+                        datalist = pickle.load(f)
+                    print('allstocks loaded from local storage')
+                    return datalist
+                print('allstocks not found locally')
             for t in request:
                 count += 1
                 if verbose:
@@ -50,6 +62,11 @@ class DataConfig:
                 print('ERROR: Some tickers were not found')
             else:
                 if verbose: print('All tickers were found successfully')
+            if allstocks:
+                # save datalist to file
+                print('saving allstocks to local storage')
+                with open(os.getcwd() + '/cache/allstocks.pkl', 'wb') as f:
+                    pickle.dump(datalist, f)
             return datalist
 
 

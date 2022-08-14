@@ -18,11 +18,11 @@ request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CM
            'UNH', 'VZ', 'V', 'WMT', 'XOM', 'WBA', 'WFC', 'WYNN']
 
 '''
-Best params from model eval:
-timestep: 540
-num_layers: 4
-hidden_size: 1000
-dropout: 0.2
+possible Best params from model eval:
+timestep: 240 
+num_layers: 2
+hidden_size: 500 
+dropout: 0.1
 learning_rate: 0.0001
 num_epochs: 20
 '''
@@ -61,7 +61,7 @@ target_price_change: {target_price_change}
 trained_on: allstocks
 ''')
 
-verbose = False
+verbose = True
 
 sp.tb.add_text('Model Params: ', f'''
 timestep: {timestep}
@@ -74,9 +74,10 @@ target_price_change: {target_price_change}
 trained_on: allstocks
 ''')
 
-# request = sp.sl.getlocaltickers()
+request = sp.sl.getlocaltickers()
 
-sp.load(request, timestep=timestep, verbose=verbose, target_price_change=target_price_change)
+params = [target_price_change,timestep]
+sp.load(request, timestep=timestep, verbose=verbose, target_price_change=target_price_change, allstocks=True, params=params)
 
 sp.create_model(device=device, num_layers=num_layers, hidden_size=hidden_size, dropout=dropout, learning_rate=learning_rate)
 

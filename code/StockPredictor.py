@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib.pyplot as plt
+import pickle
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -62,7 +62,7 @@ class StockPredictor():
         return self.model, self.optimizer
 
     def load(self, request, batch_size=60, verbose=False, train=True, timestep=30, split_date='2015-01-01',
-             target_price_change=None, lookahead=30):
+             target_price_change=None, lookahead=30, allstocks=False, params=None):
         '''
         Loads the data for the model
         :param request: list of tickers to load into the test_loader (or train_loader)
@@ -72,19 +72,44 @@ class StockPredictor():
         :param timestep: the number of timesteps to use for the data (how far the model looks back in time)
         :return: loader object
         '''
+
         if train:
+            # check if loader already exists
+            if allstocks and os.path.isfile(os.getcwd() + f'/cache/train_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl'):
+                with open(os.getcwd() + f'/cache/train_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'rb') as f:
+                    self.train_loader = pickle.load(f)
+                if verbose: print('Train loader loaded from cache')
+                return self.train_loader
+
             if verbose: print('loading training data')
             self.train_loader = self.sl.load(request, batch_size=batch_size, verbose=verbose, train=train, timestep=timestep,
-                         split_date=split_date, target_price_change=target_price_change, lookahead=lookahead)
+                         split_date=split_date, target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
             if verbose: print('request loaded')
+            # save to cache
+            if allstocks:
+                with open(os.getcwd() + f'/cache/train_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'wb') as f:
+                    pickle.dump(self.train_loader, f)
+                if verbose: print('Train loader saved to cache')
             return self.train_loader
         else:
             if verbose: print('loading test data')
+            # check if loader already exists
+            if allstocks and os.path.isfile(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl'):
+                with open(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'rb') as f:
+                    self.test_loader = pickle.load(f)
+                if verbose: print('Test loader loaded from cache')
+                return self.test_loader
+
             self.test_loader = self.sl.load(request, batch_size=batch_size, verbose=verbose, train=train,
                                              timestep=timestep,
                                              split_date=split_date, 
-                                             target_price_change=target_price_change, lookahead=lookahead)
+                                             target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
             if verbose: print('request loaded')
+            # save to cache
+            if allstocks:
+                with open(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'wb') as f:
+                    pickle.dump(self.test_loader, f)
+                if verbose: print('saved test loader to cache')
             return self.test_loader
 
     def train_model(self, num_epochs=1, verbose=False):

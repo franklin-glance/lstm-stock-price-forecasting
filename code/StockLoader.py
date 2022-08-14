@@ -180,7 +180,11 @@ class StockLoader():
         stock['average_future_price'] = stock['adjusted_close'].rolling(30, min_periods=30, closed='left').apply(
             lambda x: np.sum(weights * x))
 
-        if target_price_change is None:
+        if new:
+            print(f'Data is current price data')
+            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+        elif target_price_change is None:
             print(f'Training data is simple +/- binary classification for {lookahead} days')
             # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
             stock['target'] = stock['average_future_price'] > stock['adjusted_close']
@@ -277,7 +281,7 @@ class StockLoader():
 
 
     def load(self, request, train=True, verbose=False, split_date='2015-01-01', batch_size=60, timestep=30,
-             target_price_change=None, lookahead=30):
+             target_price_change=None, lookahead=30, allstocks=False, params=None):
         """
         prepares dataframe for stocks in request. performs data preprocessing
         :param request: list of stock symbols to load
@@ -286,8 +290,10 @@ class StockLoader():
         :param split_date: date to split data into train and test
         :return: dataloader objects with train or test data
         """
+        # check if dataloader already exists for this request
+
         requestitr = 0
-        self.data = dc.getdata(request, verbose=verbose)
+        self.data = dc.getdata(request, verbose=verbose, allstocks=allstocks)
         self.npstocks = {}
         # apply pre-processing to each stock in the request
         for i, s in enumerate(self.data):
