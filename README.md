@@ -47,6 +47,10 @@ The final prediction is the average of the predictions from the models in the en
 > Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
 > Future work tuning model hyperparameters is needed to improve test accuracy. 
 
+The `(target)` value indicates the LSTM Model's target value. For example, data preprocessing for a model with a target of `+1.0%` marks each batch with `1` if the _weighted average price_ over the next `30 trading days` is greater than `1.0%`, and `0` otherwise.
+
+**Calculation of weights for _Weighted Average Price for Future Forecasting_:**
+>  The weights for the _weighted average future price_ linearly increasing over time throughout the given interval (in this case, 30 days). Specifically, the weights vary from 1-6, so the stock closing price on the 30th day of the interval holds 6x more weight than the closing price of the first day. 
 
 | Model (target)        | Params                                                                                                                                                               | Train                                       | Test               |
 |-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|--------------------|
