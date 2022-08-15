@@ -1,5 +1,9 @@
-API_KEY = 'SBIABVRDNL5921LU'
 import time
+import os
+
+# read API key from apikey.txt
+with open(os.getcwd() + '/data/apikey.txt', 'r') as f:
+    API_KEY = f.read()
 
 '''
 This file holds the API key for the Alpha Vantage API.
