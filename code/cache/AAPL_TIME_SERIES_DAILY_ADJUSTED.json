@@ -2,11 +2,61 @@
     "Meta Data": {
         "1. Information": "Daily Time Series with Splits and Dividend Events",
         "2. Symbol": "AAPL",
-        "3. Last Refreshed": "2022-08-05",
+        "3. Last Refreshed": "2022-08-12",
         "4. Output Size": "Full size",
         "5. Time Zone": "US/Eastern"
     },
     "Time Series (Daily)": {
+        "2022-08-12": {
+            "1. open": "169.82",
+            "2. high": "172.17",
+            "3. low": "169.4",
+            "4. close": "172.1",
+            "5. adjusted close": "172.1",
+            "6. volume": "68039382",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-11": {
+            "1. open": "170.06",
+            "2. high": "170.99",
+            "3. low": "168.19",
+            "4. close": "168.49",
+            "5. adjusted close": "168.49",
+            "6. volume": "57149159",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-10": {
+            "1. open": "167.68",
+            "2. high": "169.34",
+            "3. low": "166.9",
+            "4. close": "169.24",
+            "5. adjusted close": "169.24",
+            "6. volume": "70170540",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-09": {
+            "1. open": "164.02",
+            "2. high": "165.82",
+            "3. low": "163.25",
+            "4. close": "164.92",
+            "5. adjusted close": "164.92",
+            "6. volume": "63135503",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
+        "2022-08-08": {
+            "1. open": "166.37",
+            "2. high": "167.81",
+            "3. low": "164.2",
+            "4. close": "164.87",
+            "5. adjusted close": "164.87",
+            "6. volume": "60362338",
+            "7. dividend amount": "0.0000",
+            "8. split coefficient": "1.0"
+        },
         "2022-08-05": {
             "1. open": "163.21",
             "2. high": "165.85",

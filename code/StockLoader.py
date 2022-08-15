@@ -171,14 +171,21 @@ class StockLoader():
         # we can adjust these weights to increase model accuracy/performance
         # weights -> array holding 30 weights between 0 and 1 for each day in the window.
         # weights are linearly increasing from 0 to 1.
-        weights = np.linspace(6, 1, 30)
-        weights = weights / weights.sum()
-
-        # add features indicating past values.
-        # TODO: implement lookahead so average future price can be based on different time periods
-        stock = stock.sort_index(ascending=False)
-        stock['average_future_price'] = stock['adjusted_close'].rolling(30, min_periods=30, closed='left').apply(
-            lambda x: np.sum(weights * x))
+        if lookahead == 30:
+            weights = np.linspace(6, 1, 30)
+            weights = weights / weights.sum()
+            # add features indicating past values.
+            # TODO: implement lookahead so average future price can be based on different time periods
+            stock = stock.sort_index(ascending=False)
+            stock['average_future_price'] = stock['adjusted_close'].rolling(30, min_periods=30, closed='left').apply(
+                lambda x: np.sum(weights * x))
+        else:
+            weights = np.linspace(lookahead/5, 1, lookahead)
+            weights = weights / weights.sum()
+            # add features indicating past values.
+            stock = stock.sort_index(ascending=False)
+            stock['average_future_price'] = stock['adjusted_close'].rolling(lookahead, min_periods=lookahead, closed='left').apply(
+                lambda x: np.sum(weights * x))
 
         if new:
             print(f'Data is current price data')
