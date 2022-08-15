@@ -175,7 +175,7 @@ class StockPredictor():
         print(f'Model loaded from {path}')
 
     def test_model(self, test_tickers=None, batch_size=60, test_ticker_count=10, verbose=False, with_plot=False,
-                   split_date='2015-01-01', timestep=30, lookahead=30, target_price_change=None):
+                   split_date='2015-01-01', timestep=30, lookahead=30, target_price_change=None, allstocks=False):
         '''
         :param test_tickers: custom test ticker array (default to random selection)
         :param batch_size:
@@ -198,7 +198,7 @@ class StockPredictor():
 
         test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
                                        timestep=timestep, split_date=split_date,
-                                       target_price_change=target_price_change, lookahead=lookahead)
+                                       target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
 
         num_correct = 0
         total_seen = 0
@@ -211,6 +211,8 @@ class StockPredictor():
             total_seen += y.shape[0]
         self.model.accuracy = num_correct / total_seen
         print(f'Accuracy: {np.round(num_correct / total_seen, 2)}')
+
+        self.tb.add_text('Number of Samples in Test set:', str(len(self.test_loader) * self.test_loader.batch_size))
         return num_correct/total_seen
 
 

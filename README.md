@@ -12,8 +12,7 @@ To curate useful and accurate predictions, an ensemble type model was used. The 
 
 The overall prediction is a weighted average of the 5 predictions from the LSTM Models. The weighting is based off of train/test performance of each model on historical data. 
 
----
-**Model Overview**
+### Model Overview
 ![](code/assets/Flowchart-2.jpg)
 ---
 Notes:
@@ -43,4 +42,22 @@ To predict the future price action of the stock, each model in the ensemble is p
 >Ex: If the given model has been trained to predict whether the stock will rise 5% in the future, a prediction of `>0.5` indicates that that model suggests the stock will increase 5% in the future.
 
 The final prediction is the average of the predictions from the models in the ensemble. The weighting of each models predictions is based off of the test accuracy of each model, and the certainty of the prediction. 
+
+## Train/Test Metrics 
+> Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
+> Future work tuning model hyperparameters is needed to improve test accuracy. 
+
+
+| Model (target)        | Params                                                                                                                                                               | Train                                       | Test               |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|--------------------|
+| LSTM Model 1 (+/-)    | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9175` | `Accuracy: 0.8814` |
+| LSTM Model 2 (+1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: +1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9112` | `Accuracy: 0.8875` |
+| LSTM Model 3 (-1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: -1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9091` | `Accuracy: 0.8887` |
+| LSTM Model 4 (+3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: (+/-)`      | `num_samples: 41340`<br/>`Accuracy: 0.8982` | `Accuracy: 0.8598` |
+| LSTM Model 5 (-3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.8971` | `Accuracy: 0.8496` |
+| LSTM Model 6 (+5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9126` | `Accuracy: 0.8579` |
+| LSTM Model 7 (-5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9098` | `Accuracy: 0.8603` |
+| LSTM Model 8 (+10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9329` | `Accuracy: 0.8420` |
+| LSTM Model 9 (-10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9304` | `Accuracy: 0.8900` |
+
 
