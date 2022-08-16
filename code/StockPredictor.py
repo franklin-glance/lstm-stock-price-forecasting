@@ -167,8 +167,10 @@ class StockPredictor():
         # torch.save(self.model, os.getcwd() + path)
         print(f'Model saved to {path}')
 
-    def load_model(self, path, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
-        self.model = model.Model(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout,
+    def load_model(self, path, input_size=16, hidden_size=50, num_layers=4,
+                   dropout=0.2, device='cpu'):
+        self.model = model.Model(input_size=input_size, hidden_size=hidden_size,
+                                 num_layers=num_layers, dropout=dropout,
                                  device=device)
         self.model.load_state_dict(torch.load(os.getcwd() + path))
         self.model.eval()
@@ -185,10 +187,12 @@ class StockPredictor():
 
         :return:
         '''
+        # if there is no model loaded, throw an error
         if self.model is None:
             print('Model is None')
             return
 
+        # picking random test tickers if none are passed
         if test_tickers is None:
             localtickers = self.testsl.getlocaltickers()
             test_request = np.random.choice(localtickers, test_ticker_count, replace=False)
@@ -196,10 +200,25 @@ class StockPredictor():
         else:
             test_request = test_tickers
 
-        test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
-                                       timestep=timestep, split_date=split_date,
-                                       target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
+        # checking if the test_loader has already been created and cached
+        if allstocks and os.path.isfile(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl'):
+            with open(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'rb') as f:
+                test_loader = pickle.load(f)
+            if verbose: print('Test loader loaded from cache')
+        else:
+            test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
+                                           timestep=timestep, split_date=split_date,
+                                           target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
+            if verbose: print('Test loader created')
+            if allstocks:
+                with open(
+                        os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl',
+                        'wb') as f:
+                    pickle.dump(test_loader, f)
+                if verbose: print('saved test loader to cache')
 
+
+        # testing the model on the given test_loader
         num_correct = 0
         total_seen = 0
         for batch in test_loader:
@@ -211,8 +230,7 @@ class StockPredictor():
             total_seen += y.shape[0]
         self.model.accuracy = num_correct / total_seen
         print(f'Accuracy: {np.round(num_correct / total_seen, 2)}')
-
-        self.tb.add_text('Number of Samples in Test set:', str(len(self.test_loader) * self.test_loader.batch_size))
+        self.tb.add_text('Number of Samples in Test set:', str(len(test_loader) * test_loader.batch_size))
         return num_correct/total_seen
 
 

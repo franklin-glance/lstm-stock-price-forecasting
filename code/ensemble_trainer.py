@@ -38,6 +38,7 @@ num_epochs: 20
 
 _, target_price_change, timestep, num_layers, hidden_size, dropout, learning_rate, num_epochs = sys.argv
 
+lookahead = 120 # lookahead is the number of days we will predict ahead
 target_price_change = float(target_price_change)
 timestep = int(timestep)
 num_layers = int(num_layers)
@@ -58,6 +59,7 @@ dropout: {dropout}
 learning_rate: {learning_rate}
 num_epochs: {num_epochs}
 target_price_change: {target_price_change}
+lookahead: {lookahead}
 trained_on: allstocks
 ''')
 
@@ -71,19 +73,20 @@ dropout: {dropout}
 learning_rate: {learning_rate}
 num_epochs: {num_epochs}
 target_price_change: {target_price_change}
+lookahead: {lookahead}
 trained_on: allstocks
 ''')
 
 request = sp.sl.getlocaltickers()
 
 params = [target_price_change,timestep]
-sp.load(request, timestep=timestep, verbose=verbose, target_price_change=target_price_change, allstocks=True, params=params)
+sp.load(request, timestep=timestep, verbose=verbose, target_price_change=target_price_change, allstocks=True, params=params, lookahead=lookahead)
 
 sp.create_model(device=device, num_layers=num_layers, hidden_size=hidden_size, dropout=dropout, learning_rate=learning_rate)
 
 sp.train_model(num_epochs=num_epochs, verbose=verbose)
 
-sp.save_model(f'/models/ensemble/pc_{target_price_change}_ts-{timestep}_l-{num_layers}_hs-{hidden_size}_d-{dropout}_lr-{learning_rate}_e-{num_epochs}.pth')
+sp.save_model(f'/models/ensemble/pc_{target_price_change}_ts-{timestep}_l-{num_layers}_hs-{hidden_size}_d-{dropout}_lr-{learning_rate}_e-{num_epochs}_look-{lookahead}.pth')
 
 test_accuracy = sp.test_model(request, verbose=verbose, target_price_change=target_price_change)
 
