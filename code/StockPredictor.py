@@ -1,3 +1,6 @@
+
+import StockLoader
+
 import os
 import time
 
@@ -9,8 +12,8 @@ import pickle
 
 from torch.utils.tensorboard import SummaryWriter
 
-
-import StockLoader
+print('importing stockloader')
+print('importing model')
 import model
 
 
@@ -62,7 +65,7 @@ class StockPredictor():
         return self.model, self.optimizer
 
     def load(self, request, batch_size=60, verbose=False, train=True, timestep=30, split_date='2015-01-01',
-             target_price_change=None, lookahead=30, allstocks=False, params=None):
+             target_price_change=None, lookahead=30, allstocks=False, params=None, device='cpu'):
         '''
         Loads the data for the model
         :param request: list of tickers to load into the test_loader (or train_loader)
@@ -114,8 +117,6 @@ class StockPredictor():
 
     def train_model(self, num_epochs=1, verbose=False):
 
-
-
         self.model.to(self.device)
         accuracy_log = {}
         if self.train_loader is None:
@@ -133,8 +134,8 @@ class StockPredictor():
             epoch_start_time = time.time()
             for i, (x, y) in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
-                # x = x.to(self.device)
-                # y = y.to(self.device)
+                x = x.to(self.device)
+                y = y.to(self.device)
                 y_pred = self.model(x)
                 # y = y.reshape(y.shape[0], y.shape[1], -1)
                 y = y[:, -1].reshape(-1, 1)
@@ -167,8 +168,10 @@ class StockPredictor():
         # torch.save(self.model, os.getcwd() + path)
         print(f'Model saved to {path}')
 
-    def load_model(self, path, input_size=16, hidden_size=50, num_layers=4, dropout=0.2, device='cpu'):
-        self.model = model.Model(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout,
+    def load_model(self, path, input_size=16, hidden_size=50, num_layers=4,
+                   dropout=0.2, device='cpu'):
+        self.model = model.Model(input_size=input_size, hidden_size=hidden_size,
+                                 num_layers=num_layers, dropout=dropout,
                                  device=device)
         self.model.load_state_dict(torch.load(os.getcwd() + path))
         self.model.eval()
@@ -185,10 +188,12 @@ class StockPredictor():
 
         :return:
         '''
+        # if there is no model loaded, throw an error
         if self.model is None:
             print('Model is None')
             return
 
+        # picking random test tickers if none are passed
         if test_tickers is None:
             localtickers = self.testsl.getlocaltickers()
             test_request = np.random.choice(localtickers, test_ticker_count, replace=False)
@@ -196,10 +201,25 @@ class StockPredictor():
         else:
             test_request = test_tickers
 
-        test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
-                                       timestep=timestep, split_date=split_date,
-                                       target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
+        # checking if the test_loader has already been created and cached
+        if allstocks and os.path.isfile(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl'):
+            with open(os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl', 'rb') as f:
+                test_loader = pickle.load(f)
+            if verbose: print('Test loader loaded from cache')
+        else:
+            test_loader = self.testsl.load(test_request, train=False, verbose=verbose, batch_size=batch_size,
+                                           timestep=timestep, split_date=split_date,
+                                           target_price_change=target_price_change, lookahead=lookahead, allstocks=allstocks)
+            if verbose: print('Test loader created')
+            if allstocks:
+                with open(
+                        os.getcwd() + f'/cache/test_loader_{timestep}_{split_date}_{target_price_change}_{lookahead}_{batch_size}.pkl',
+                        'wb') as f:
+                    pickle.dump(test_loader, f)
+                if verbose: print('saved test loader to cache')
 
+
+        # testing the model on the given test_loader
         num_correct = 0
         total_seen = 0
         for batch in test_loader:
@@ -211,8 +231,7 @@ class StockPredictor():
             total_seen += y.shape[0]
         self.model.accuracy = num_correct / total_seen
         print(f'Accuracy: {np.round(num_correct / total_seen, 2)}')
-
-        self.tb.add_text('Number of Samples in Test set:', str(len(self.test_loader) * self.test_loader.batch_size))
+        self.tb.add_text('Number of Samples in Test set:', str(len(test_loader) * test_loader.batch_size))
         return num_correct/total_seen
 
 
@@ -287,7 +306,8 @@ if __name__ == '__main__':
     # request = ['AAPL', 'TSLA', 'IBM']
 
     # Create StockPredictior Object
-    device='cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print('Using device: ', device)
     sp = StockPredictor(device=device)
     
     '''
@@ -302,15 +322,15 @@ if __name__ == '__main__':
     '''
 
     timestep = 200 # length of sequence for LSTM
-    target_price_change = -5 # target price percentage change over lookahead days
-    sp.create_model()
+    target_price_change = None # target price percentage change over lookahead days
+    sp.create_model(device=device)
     # sp.create_model(device=device, num_layers=4, hidden_size=1000, dropout=0.2)
     # sp.load_model(device=device, num_layers=4, hidden_size=1000, dropout=0.2, path='/models/codemodel_200timestep_4layers_120hidden_02dropout_5epoch.pth')
     # # sp.load_model('/models/codemodel_200timestep_4layers_120hidden_02dropout_5epoch.pth')
     # allstocks = sp.sl.getlocaltickers()
     # random_stocks = np.random.choice(allstocks, 100, replace=False)
     sp.load(request, timestep=timestep,verbose=True, target_price_change=target_price_change)
-    sp.train_model(10, verbose=True)
+    sp.train_model(100, verbose=True)
     # sp.save_model('/models/')
     sp.test_model(request, timestep=timestep, verbose=True, target_price_change=target_price_change)
 

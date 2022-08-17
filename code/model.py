@@ -30,3 +30,14 @@ class Model(nn.Module):
         # get the final output
         out = torch.sigmoid(self.fc(out[:, -1, :]))
         return out
+
+if __name__ == "__main__":
+    # test model 
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print('Using device:', device)
+    model = Model(input_size=16, hidden_size=50, num_layers=2, dropout=0.2, device=device)
+
+    x = torch.randn(1, 1, 16).to(device)
+    out = model(x)
+    print(out.shape)
+    print(out)
