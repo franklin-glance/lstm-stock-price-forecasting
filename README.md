@@ -109,37 +109,38 @@ The 'close' values were dropped in favor of the using Adjusted Close. Several Fe
 - MACD_hist (Moving Average Convergence Divergence Histogram)
 - 52 Week High
 - 52 Week Low
+
+
 **Target:**
 Example target: for params `lookahead` (number of days in the future to predict the price for), `target_price_change`, `new` (True if the model is being used to generate current prediction)`, the target is calculated in the following way:
   ```python
-        if new:
-            print(f'Data is current price data')
-            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
-            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
-        elif target_price_change is None:
-            print(f'Training data is simple +/- binary classification for {lookahead} days')
-            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
-            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
-            # change target to numeric
-        elif target_price_change > 0:
-            print(f'Target is {target_price_change}% rise for {lookahead} days')
-            stock['target'] = stock['average_future_price'] > stock['adjusted_close'] * (1 + target_price_change / 100)
-        else:
-            print(f'Target is {target_price_change}% fall for {lookahead} days')
-            stock['target'] = stock['average_future_price'] < stock['adjusted_close'] * (1 - target_price_change / 100)
-
+  if new:
+      print(f'Data is current price data')
+      # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+      stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+  elif target_price_change is None:
+      print(f'Training data is simple +/- binary classification for {lookahead} days')
+      # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+      stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+      # change target to numeric
+  elif target_price_change > 0:
+      print(f'Target is {target_price_change}% rise for {lookahead} days')
+      stock['target'] = stock['average_future_price'] > stock['adjusted_close'] * (1 + target_price_change / 100)
+  else:
+      print(f'Target is {target_price_change}% fall for {lookahead} days')
+      stock['target'] = stock['average_future_price'] < stock['adjusted_close'] * (1 - target_price_change / 100)
   ```
+**Calculation of weights for `average_future_price`:**
+The weights used in calculating the `average_future_price` for a given day linearly increase over time throughout the given interval (in this case, 30 days in the future). The weights vary from 1-6, so the stock closing price on the 30th day of the interval holds 6x more weight than the closing price of the first day. 
 ### Training Overview
-> Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
-> Future work tuning model hyperparameters is needed to improve test accuracy. 
+Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
+Future work tuning model hyperparameters is needed to improve test accuracy. 
 
 The `(target)` value indicates the LSTM Model's target value. For example, data preprocessing for a model with a target of `+1.0%` marks each batch with `1` if the _weighted average price_ over the next `30 trading days` is greater than `1.0%`, and `0` otherwise.
 
-**Calculation of weights for _Weighted Average Price for Future Forecasting_:**
->  The weights for the _weighted average future price_ linearly increasing over time throughout the given interval (in this case, 30 days). Specifically, the weights vary from 1-6, so the stock closing price on the 30th day of the interval holds 6x more weight than the closing price of the first day. 
-
 
 ### Training Results
+The following table lists train/test results for a lookahead of `30` days and target price changes ranging from `-10.0%` to `+10.0%`.
 | Model (target)        | Params                                                                                                                                                               | Train                                       | Test               |
 |-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|--------------------|
 | LSTM Model 1 (+/-)    | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9175` | `Accuracy: 0.8814` |
@@ -153,8 +154,8 @@ The `(target)` value indicates the LSTM Model's target value. For example, data 
 | LSTM Model 9 (-10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9304` | `Accuracy: 0.8900` |
 
 ## Testing
-> Each Model is tested on 40000+ samples of stock price data from `01-01-2015` to present. The test accuracy is simply the number of correct predictions divided by the number of total predictions. 
 ### Testing Overview
+Each Model is tested on 40000+ samples of stock price data from `01-01-2015` to present. The test accuracy is simply the number of correct predictions divided by the number of total predictions. 
 
 ### Testing Results
 | Target (%) | Accuracy (30 days) | Accuracy (60 days) | Accuracy (120 days) |
@@ -175,15 +176,37 @@ The `(target)` value indicates the LSTM Model's target value. For example, data 
 
 ## Conclusion
 
+### Example Output
+`ensemble.py` provides a simple interface for producing a prediction using an ensemble of models. The output for ticker `TSLA` on `Aug 18, 2022` is the following: 
+``` 
+None [0.999534010887146, 'Affirmative']  # None -> represents the +/- overall price direction. 0.99 > 0.5 represents Affirmation in positive price change
+1.0 [0.9972209930419922, 'Affirmative']
+-1.0 [0.0020713915582746267, 'Negative']
+3.0 [0.9637451171875, 'Affirmative']
+-3.0 [0.07711449265480042, 'Negative']
+5.0 [0.647577702999115, 'Affirmative']
+-5.0 [0.35542991757392883, 'Negative']
+10.0 [0.062117259949445724, 'Negative']
+-10.0 [0.9693275094032288, 'Affirmative']
+Positive overall direction
+confirming overall direction at the 1.0% level
+confirm not bearish at the -1.0% level
+confirming overall direction at the 3.0% level
+confirm not bearish at the -3.0% level
+confirming overall direction at the 5.0% level
+confirm not bearish at the -5.0% level
+positive upper bound at the 10.0% level
+key: -10.0, value: [0.9693275094032288, 'Affirmative'], bull: True, lowerbound: 5.0, upperbound: 10.0, done: True
+```
+This output suggests that `TSLA` stock price will move in the positive direction between 5% and 10% over the next 6 weeks. 
+Current `TSLA` stock price is $913.00. The lower price target is $958.65 and the upper price target is $1004.30. 
+
+Similar output can be produced for the 60 and 120 day intervals. 
+
 ### Current State
-Currently, the model needs work to produce accurate predictions for the 60 and 120 day timeframes. The 30 day predictions are provably accuracte on unseen backtesting data. I would like to shift the accuracy scores of the 120 and 60 day models to be closer to 0.9. I plan on implementing this project using a Transformer architecture rather than a LSTM to allow the model to see more past data without suffering from vanishing gradients. 
+The model needs more work to produce accurate predictions for the 60 and 120 day timeframes. The 30 day predictions are provably accuracte on unseen backtesting data. I would like to shift the accuracy scores of the 120 and 60 day models to be closer to 0.9. I plan on implementing this project using a Transformer architecture rather than a LSTM to allow the model to see more past data without suffering from vanishing gradients. 
 
 Futher work is needed to improve the accuracy of each model. The amount of hyperparameter tuning done so far has been minimal; hyperparameter tuning likely will increase accuracy and reduce overfitting of the models. Additionally, I plan on training models on more price data from Forex and Foreign Stocks. 
-
-
-### Model Accuracy
-
-
 ## Project Files
 
 | Filename              | Description                                                                                                                                                 |

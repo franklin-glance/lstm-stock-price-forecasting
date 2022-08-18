@@ -175,5 +175,3 @@ if __name__ == '__main__':
         else:
             res = Ensemble().predict(ticker)
             results[ticker] = [res, interpret_results(res, ticker)]
-
-
