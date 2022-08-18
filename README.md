@@ -40,10 +40,9 @@ This application predicts future stock price action using an ensemble of LSTM mo
 ### LSTM Model 
 
 
-
 The model utilizes `n` LSTM models to predict the future price action of a given stock. Each model is trained on over `50000` samples of historical stock price data (from IPO to `01-01-2015`). Then, the models are tested on price data from `01-01-2015` to present. The test accuracy represents the accuracy of the model on price predictions from `01-01-2015` to today. 
 
-<img src='/code/models/Flowchart-2.jpg' width='100' />
+<img src='code/assets/model.png' height=800 />
 
 ### Ensemble
 
