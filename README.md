@@ -6,13 +6,15 @@
   - [LSTM Model](#lstm-model)
   - [Ensemble Model](#ensemble)
 - [Training](#training)
+  - [Feature Engineering](#feature-engineering)
   - [Training Overview](#training-overview)
   - [Training Results](#training-results)
 - [Testing](#testing)
   - [Testing Overview](#testing-overview)
   - [Testing Results](#testing-results)
-- [Train/Test Metrics](#train-test-metrics)
 - [Conclusion](#conclusion)
+  - [Example Output](#example-output)
+  - [Current State](#current-state)
 - [Project Files](#project-files)
 
 ## Introduction
