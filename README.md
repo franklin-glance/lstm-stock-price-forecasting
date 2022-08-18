@@ -18,10 +18,11 @@
 - [Project Files](#project-files)
 
 ## Introduction
-> This application forecasts stock prices using a series of LSTM models (ensemble). The models are trained on daily stock price  data (open, close, volume) up to 2015, and tested on daily price data from 2015 to present. After training, the models can be used to make accurate predictions of future stock price action. 
+This application predicts stock prices using a series of LSTM models (ensemble). The models are trained on daily stock price  data (open, close, volume) up to 2015, and tested on daily price data from 2015 to present. After training, the models can be used to make accurate predictions of future stock price action. 
+It is designed to be a tool to supplement a swing trader's technical analysis and trading strategy. It is not intended to be the sole decision maker for a trader, rather, the trader must use the results of this application to make their own trading decisions.
 
 ## Features
-Currently, the model can predict future price movement of a given stock/etf. It can predict future price movement for three different time periods (6 weeks, 24 weeks, and 48 weeks). The model is more accuract on the shorter time periods, and less accurate on the longer time periods. 
+Currently, the model can predict future price movement of a given stock/etf. It can predict future price movement for three different time periods (6 weeks, 24 weeks, and 48 weeks). The model is more accuracte on the shorter time periods, and less accurate on the longer time periods. 
 
 The output consists of the following information:
 - Affirmative/Negative Prediction for each model. 
