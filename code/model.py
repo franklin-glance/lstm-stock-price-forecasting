@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.utils.tensorboard import SummaryWriter
+
+
 
 # TODO: make the model work on mps
 
@@ -32,6 +35,10 @@ class Model(nn.Module):
         return out
 
 if __name__ == "__main__":
+    writer = SummaryWriter('runs/model')
+    
+    
+    
     # test model 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('Using device:', device)
@@ -39,5 +46,7 @@ if __name__ == "__main__":
 
     x = torch.randn(1, 1, 16).to(device)
     out = model(x)
+    writer.add_graph(model, (x,))
+    writer.close() 
     print(out.shape)
     print(out)

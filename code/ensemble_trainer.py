@@ -10,9 +10,6 @@ Goal:
 - Save the test accuracy to disk.
 
 '''
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-sp = StockPredictor.StockPredictor(device=device)
-
 
 request = ['AAPL', 'GS', 'IBM', 'MSFT', 'AMGN', 'MMM', 'COST', 'CVX', 'FDX', 'CMI', 'BLK', 'AVB', 'HD', 'LMT',
            'JNJ', 'PFE', 'PG', 'PEP', 'PKI', 'PYPL', 'QCOM', 'RCL', 'ROKU', 'SBUX', 'T', 'TSLA', 'TWTR', 'TXN',
@@ -38,7 +35,13 @@ lookahead: 240
 # num_epochs = 5
 
 
-_, target_price_change, timestep, num_layers, hidden_size, dropout, learning_rate, num_epochs, lookahead = sys.argv
+_, target_price_change, timestep, num_layers, hidden_size, dropout, learning_rate, num_epochs, lookahead, cuda_num = sys.argv
+
+device = torch.device(f'cuda:{cuda_num}'  if torch.cuda.is_available() else 'cpu')
+sp = StockPredictor.StockPredictor(device=device)
+
+
+
 
 # lookahead = 120 # lookahead is the number of days we will predict ahead
 lookahead = int(lookahead)
@@ -92,6 +95,6 @@ sp.train_model(num_epochs=num_epochs, verbose=verbose)
 
 sp.save_model(f'/models/ensemble/pc_{target_price_change}_ts-{timestep}_l-{num_layers}_hs-{hidden_size}_d-{dropout}_lr-{learning_rate}_e-{num_epochs}_look-{lookahead}.pth')
 
-test_accuracy = sp.test_model(request, verbose=verbose, target_price_change=target_price_change)
+test_accuracy = sp.test_model(request, verbose=verbose, target_price_change=target_price_change, lookahead=lookahead)
 
 sp.tb.add_text('Test Accuracy: ', f'{test_accuracy}')

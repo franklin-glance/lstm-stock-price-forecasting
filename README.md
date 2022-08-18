@@ -16,26 +16,54 @@
 - [Project Files](#project-files)
 
 ## Introduction
-> This is a project to predict stock prices using LSTM models.
+> This application forecasts stock prices using a series of LSTM models (ensemble). The models are trained on daily stock price  data (open, close, volume) up to 2015, and tested on daily price data from 2015 to present. After training, the models can be used to make accurate predictions of future stock price action. 
 
 ## Features
+Currently, the model can predict future price movement of a given stock/etf. It can predict future price movement for three different time periods (6 weeks, 24 weeks, and 48 weeks). The model is more accuract on the shorter time periods, and less accurate on the longer time periods. 
+
+The output consists of the following information:
+- Affirmative/Negative Prediction for each model. 
+- Certainty of Affirmative/Negative Prediction
+- Overall Prediction Confidence
+- Forecasted price movement (ex: between +1% and +5% in the next 6 weeks)
+- Past price movement in the form of a chart.
+
+Example: **TODO:** add example
+
+## Model Architecture
+
+To predict future price data, a ML model with time series capability is necessary. Recurrent neural networks (RNNs) are a popular choice for this purpose. Connections
 
 This application predicts future stock price action using an ensemble of LSTM models. The models are built using PyTorch, and are trained using stock price data from the Alpha Vantage API. 
 
-## Model Architecture
-### LSTM Model 
-To curate useful and accurate predictions, an ensemble type model was used. The ensemble consists of 5 LSTM models. Each model serves as a binary classifier of future price action. The target value is a weighted average of the adjusted closing price for the given stock over the `lookahead` time frame.
 
-The overall prediction is a weighted average of the 5 predictions from the LSTM Models. The weighting is based off of train/test performance of each model on historical data. 
+### LSTM Model 
+
+
+
+The model utilizes `n` LSTM models to predict the future price action of a given stock. Each model is trained on over `50000` samples of historical stock price data (from IPO to `01-01-2015`). Then, the models are tested on price data from `01-01-2015` to present. The test accuracy represents the accuracy of the model on price predictions from `01-01-2015` to today. 
+
+<img src='/code/models/Flowchart-2.jpg' width='100' />
 
 ### Ensemble
+
+To curate useful and accurate predictions, an ensemble type model was used. The ensemble consists of `n` LSTM models. Each model serves as a binary classifier of future price action. The target value is a weighted average of the adjusted closing price for the given stock over the `lookahead` time frame.
+
+`n` -> the number of LSTM models in the ensemble. One model is needed for binary classification at each price level. The ensemble diagram depicts an example using 7 models, which allows us to classify future price action in the following way:
+
+#### 7 LSTM Ensemble
 ![](code/assets/Flowchart-2.jpg)
----
-Notes:
-- larger absolute percentages for target change result in less accurate prediction, due to overfitting of train data. This is likely due to an overabundance of '0' target values. Overfitting should improve when using larger train dataset.
-- Differing target change values will likely benefit from different model hyperparameters
----
-The model utilizes `n` LSTM models to predict the future price action of a given stock. Each model is trained on over `50000` samples of historical stock price data (from IPO to `01-01-2015`). Then, the models are tested on price data from `01-01-2015` to present. The test accuracy represents the accuracy of the model on price predictions from `01-01-2015` to today. 
+> - Positive Movement
+>   - The expected price change for the given equity is +5% or greater over the next `timestep` days
+>   - The expected price change for the given equity is between +3% and +5% over the next `timestep` days
+>   - The expected price change for the given equity is between +1% and +3% over the next `timestep` days
+>   - The expected price change for the given equity is between 0% and +1% over the next `timestep` days
+> - Negative Movement
+>   - The expected price change for the given equity is -5% or less over the next `timestep` days 
+>   - The expected price change for the given equity is between -3% and -5% over the next `timestep` days
+>   - The expected price change for the given equity is between -1% and -3% over the next `timestep` days
+>   - The expected price change for the given equity is between 0% and -1% over the next `timestep` days
+
 
 To predict the future price action of the stock, each model in the ensemble is passed the given stock ticker. Each model looks at `timestep` days of data, and creates a prediction between `0` and `1`. A prediction `>0.5` represents affirmation in the direction of the target for the given model. 
 >Ex: If the given model has been trained to predict whether the stock will rise 5% in the future, a prediction of `>0.5` indicates that that model suggests the stock will increase 5% in the future.
@@ -53,7 +81,21 @@ The final prediction is the average of the predictions from the models in the en
 ### Testing Overview
 
 ### Testing Results
-
+| Target (%) | Accuracy (30 days) | Accuracy (60 days) | Accuracy (120 days) |
+| ---------- | ------------------ | ------------------ | ------------------- |
+| +/- \*     | 0.8814             | 0.6                | 0.6                 |
+| +1.0       | 0.9975             | 0.67               | 0.6                 |
+| \-1.0      | 0.8887             | 0.51               | 0.6                 |
+| +3.0       | 0.8598             | 0.7                | 0.62                |
+| \-3.0      | 0.8496             | 0.71               | 0.62                |
+| +5.0       | 0.8579             | 0.71               | 0.71                |
+| \-5.0      | 0.8603             | 0.7                | 0.62                |
+| +10.0      | 0.842              | 0.77               | 0.72                |
+| \-10.0     | 0.89               | 0.78               | 0.67                |
+| +15.0      | N/A                | 0.83               | 0.73                |
+| \-15.0     | N/A                | 0.83               | 0.71                |
+| +20.0      | N/A                | 0.91               | 0.76                |
+| \-20.0     | N/A                | 0.85               | 0.72                |
 
 ## Train/Test Metrics 
 > Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
