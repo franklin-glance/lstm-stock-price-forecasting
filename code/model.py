@@ -46,7 +46,9 @@ if __name__ == "__main__":
 
     x = torch.randn(1, 1, 16).to(device)
     out = model(x)
-    writer.add_graph(model, (x,))
-    writer.close() 
+    # writer.add_graph(model, (x,))
+    # writer.close() 
     print(out.shape)
     print(out)
+
+    print(model)
