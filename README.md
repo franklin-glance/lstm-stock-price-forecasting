@@ -32,11 +32,13 @@ Example: **TODO:** add example
 
 ## Model Architecture
 
-To predict future price data, a ML model with time series capability is necessary. Recurrent neural networks (RNNs) are a popular choice for this purpose. Connections
+To predict future price data, it is necessary to use a ML model that has some notion of memory, or a way to include previous data points in the current prediction. Recurrent neural networks (RNNs) are a popular choice for this purpose. RNNs use a *hidden state* to hold the output from previous data points, and combines the *hidden state* with current input when making a prediction. However, RNNs suffer from a problem called *vanishing gradients,* which becomes an issue when trying to predict price action using a long series of past data. The gradients within an RNN carry information regarding past sequences of data, and when given long sequences, the gradients can become too small to be useful. 
+
+The *vanishing gradient* problem is solved using LSTMs, which are long short-term memory (LSTM) units. LSTMs are a type of RNN that use a *cell state* to hold the output from previous data points, and combines the *cell state* with current input when making a prediction. LSTMs are more effective at learning long-term patterns than RNNs, and are more effective at predicting price action over a long sequence of data.
 
 This application predicts future stock price action using an ensemble of LSTM models. The models are built using PyTorch, and are trained using stock price data from the Alpha Vantage API. 
 
-
+For a better explanation of LSTMs, see [this article](https://medium.datadriveninvestor.com/how-do-lstm-networks-solve-the-problem-of-vanishing-gradients-a6784971a577)
 ### LSTM Model 
 
 
@@ -56,37 +58,102 @@ The following diagram depicts the tensorboard visualization of the model.
 
 ### Ensemble
 
-To curate useful and accurate predictions, an ensemble type model was used. The ensemble consists of `n` LSTM models. Each model serves as a binary classifier of future price action. The target value is a weighted average of the adjusted closing price for the given stock over the `lookahead` time frame.
+To curate useful and accurate predictions, an ensemble of LSTM models was used. The ensemble consists of `n` LSTM models. Each model serves as a binary classifier of future price action. The target value is a weighted average of the adjusted closing price for the given stock over the `lookahead` time frame.
 
-`n` -> the number of LSTM models in the ensemble. One model is needed for binary classification at each price level. The ensemble diagram depicts an example using 7 models, which allows us to classify future price action in the following way:
-
-#### 7 LSTM Ensemble
+---
+**7 LSTM Ensemble**
 ![](code/assets/Flowchart-2.jpg)
-> - Positive Movement
->   - The expected price change for the given equity is +5% or greater over the next `timestep` days
->   - The expected price change for the given equity is between +3% and +5% over the next `timestep` days
->   - The expected price change for the given equity is between +1% and +3% over the next `timestep` days
->   - The expected price change for the given equity is between 0% and +1% over the next `timestep` days
-> - Negative Movement
->   - The expected price change for the given equity is -5% or less over the next `timestep` days 
->   - The expected price change for the given equity is between -3% and -5% over the next `timestep` days
->   - The expected price change for the given equity is between -1% and -3% over the next `timestep` days
->   - The expected price change for the given equity is between 0% and -1% over the next `timestep` days
-
+**Outputs:**
+- **Positive Movement**
+  - The expected price change for the given equity is +5% or greater over the next `timestep` days
+  - The expected price change for the given equity is between +3% and +5% over the next `timestep` days
+  - The expected price change for the given equity is between +1% and +3% over the next `timestep` days
+  - The expected price change for the given equity is between 0% and +1% over the next `timestep` days
+- **Negative Movement**
+  - The expected price change for the given equity is -5% or less over the next `timestep` days 
+  - The expected price change for the given equity is between -3% and -5% over the next `timestep` days
+  - The expected price change for the given equity is between -1% and -3% over the next `timestep` days
+  - The expected price change for the given equity is between 0% and -1% over the next `timestep` days
+> The model output will follow the preceeding format, along with the certainty of the prediction. Certainty is calculated using a combination of testing accuracy for each model along with the number of models in agreement with the given prediction
+---
 
 To predict the future price action of the stock, each model in the ensemble is passed the given stock ticker. Each model looks at `timestep` days of data, and creates a prediction between `0` and `1`. A prediction `>0.5` represents affirmation in the direction of the target for the given model. 
 >Ex: If the given model has been trained to predict whether the stock will rise 5% in the future, a prediction of `>0.5` indicates that that model suggests the stock will increase 5% in the future.
-
-The final prediction is the average of the predictions from the models in the ensemble. The weighting of each models predictions is based off of the test accuracy of each model, and the certainty of the prediction. 
-
 ## Training
+Stock price data is collected from the Alpha Vantage API. A series of over 50000 different companies with IPO dates prior to 2010 were used to train the models. 
+### Feature Engineering
+The stock price data collected from the Alpha Vantage API contains daily prices with the following features:
+- Open
+- High
+- Low
+- Close
+- Adjusted Close
+- Volume
 
+The 'close' values were dropped in favor of the using Adjusted Close. Several Features were extracted from the price data to create a total of 16 input features and 1 target feature. 
+
+**Input Features:**
+- Open
+- High
+- Low
+- Adjusted Close
+- Volume
+- RSI (Relative Strength Index)
+- SMA (Simple Moving Average)
+- VWMA (Volume Weighted Moving Average)
+- BB_lower (Bollinger Band Lower)
+- BB_upper (Bollinger Band Upper)
+- BB_middle (Bollinger Band Middle)
+- MACD (Moving Average Convergence Divergence)
+- MACD_signal (Moving Average Convergence Divergence Signal)
+- MACD_hist (Moving Average Convergence Divergence Histogram)
+- 52 Week High
+- 52 Week Low
+**Target:**
+Example target: for params `lookahead` (number of days in the future to predict the price for), `target_price_change`, `new` (True if the model is being used to generate current prediction)`, the target is calculated in the following way:
+  ```python
+        if new:
+            print(f'Data is current price data')
+            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+        elif target_price_change is None:
+            print(f'Training data is simple +/- binary classification for {lookahead} days')
+            # TARGET -> Rise/Fall -> 1 if price is rising, 0 if falling
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close']
+            # change target to numeric
+        elif target_price_change > 0:
+            print(f'Target is {target_price_change}% rise for {lookahead} days')
+            stock['target'] = stock['average_future_price'] > stock['adjusted_close'] * (1 + target_price_change / 100)
+        else:
+            print(f'Target is {target_price_change}% fall for {lookahead} days')
+            stock['target'] = stock['average_future_price'] < stock['adjusted_close'] * (1 - target_price_change / 100)
+
+  ```
 ### Training Overview
+> Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
+> Future work tuning model hyperparameters is needed to improve test accuracy. 
+
+The `(target)` value indicates the LSTM Model's target value. For example, data preprocessing for a model with a target of `+1.0%` marks each batch with `1` if the _weighted average price_ over the next `30 trading days` is greater than `1.0%`, and `0` otherwise.
+
+**Calculation of weights for _Weighted Average Price for Future Forecasting_:**
+>  The weights for the _weighted average future price_ linearly increasing over time throughout the given interval (in this case, 30 days). Specifically, the weights vary from 1-6, so the stock closing price on the 30th day of the interval holds 6x more weight than the closing price of the first day. 
+
 
 ### Training Results
+| Model (target)        | Params                                                                                                                                                               | Train                                       | Test               |
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|--------------------|
+| LSTM Model 1 (+/-)    | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9175` | `Accuracy: 0.8814` |
+| LSTM Model 2 (+1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: +1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9112` | `Accuracy: 0.8875` |
+| LSTM Model 3 (-1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: -1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9091` | `Accuracy: 0.8887` |
+| LSTM Model 4 (+3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: (+/-)`      | `num_samples: 41340`<br/>`Accuracy: 0.8982` | `Accuracy: 0.8598` |
+| LSTM Model 5 (-3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.8971` | `Accuracy: 0.8496` |
+| LSTM Model 6 (+5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9126` | `Accuracy: 0.8579` |
+| LSTM Model 7 (-5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9098` | `Accuracy: 0.8603` |
+| LSTM Model 8 (+10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9329` | `Accuracy: 0.8420` |
+| LSTM Model 9 (-10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9304` | `Accuracy: 0.8900` |
 
 ## Testing
-
+> Each Model is tested on 40000+ samples of stock price data from `01-01-2015` to present. The test accuracy is simply the number of correct predictions divided by the number of total predictions. 
 ### Testing Overview
 
 ### Testing Results
@@ -106,29 +173,15 @@ The final prediction is the average of the predictions from the models in the en
 | +20.0      | N/A                | 0.91               | 0.76                |
 | \-20.0     | N/A                | 0.85               | 0.72                |
 
-## Train/Test Metrics 
-> Each LSTM Model is trained on `~50000` samples of historical stock price data. The test accuracy is the accuracy of the model on price predictions from `01-01-2015` to today.
-> Future work tuning model hyperparameters is needed to improve test accuracy. 
-
-The `(target)` value indicates the LSTM Model's target value. For example, data preprocessing for a model with a target of `+1.0%` marks each batch with `1` if the _weighted average price_ over the next `30 trading days` is greater than `1.0%`, and `0` otherwise.
-
-**Calculation of weights for _Weighted Average Price for Future Forecasting_:**
->  The weights for the _weighted average future price_ linearly increasing over time throughout the given interval (in this case, 30 days). Specifically, the weights vary from 1-6, so the stock closing price on the 30th day of the interval holds 6x more weight than the closing price of the first day. 
-
-| Model (target)        | Params                                                                                                                                                               | Train                                       | Test               |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------|--------------------|
-| LSTM Model 1 (+/-)    | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9175` | `Accuracy: 0.8814` |
-| LSTM Model 2 (+1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: +1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9112` | `Accuracy: 0.8875` |
-| LSTM Model 3 (-1.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: -1.0%`      | `num_samples: 41340`<br/>`Accuracy: 0.9091` | `Accuracy: 0.8887` |
-| LSTM Model 4 (+3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: (+/-)`      | `num_samples: 41340`<br/>`Accuracy: 0.8982` | `Accuracy: 0.8598` |
-| LSTM Model 5 (-3.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.8971` | `Accuracy: 0.8496` |
-| LSTM Model 6 (+5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9126` | `Accuracy: 0.8579` |
-| LSTM Model 7 (-5.0%)  | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9098` | `Accuracy: 0.8603` |
-| LSTM Model 8 (+10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9329` | `Accuracy: 0.8420` |
-| LSTM Model 9 (-10.0%) | `timestep: 240`<br/>`num_layers: 2`<br/>`hidden_size: 500`<br/>`dropout: 0.1`<br/>`learning_rate: 0.0001`<br/>`num_epochs: 20`<br/>`target_price_change: None (+/-)` | `num_samples: 41340`<br/>`Accuracy: 0.9304` | `Accuracy: 0.8900` |
-
-
 ## Conclusion
+
+### Current State
+Currently, the model needs work to produce accurate predictions for the 60 and 120 day timeframes. The 30 day predictions are provably accuracte on unseen backtesting data. I would like to shift the accuracy scores of the 120 and 60 day models to be closer to 0.9. I plan on implementing this project using a Transformer architecture rather than a LSTM to allow the model to see more past data without suffering from vanishing gradients. 
+
+Futher work is needed to improve the accuracy of each model. The amount of hyperparameter tuning done so far has been minimal; hyperparameter tuning likely will increase accuracy and reduce overfitting of the models. Additionally, I plan on training models on more price data from Forex and Foreign Stocks. 
+
+
+### Model Accuracy
 
 
 ## Project Files
